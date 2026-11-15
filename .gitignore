@@ -1,0 +1,36 @@
+.venv/
+node_modules/
+dist/
+build/
+.env
+__pycache__/
+*.pyc
+
+# Local backups and runtime data
+.backups/
+*.bak
+*.log
+*.wav
+*.mp3
+*.recording
+
+# Downloaded AI models
+assets/models/
+*.onnx
+*.onnx.json
+
+# Generated frontend output
+frontend/dist/
+frontend/node_modules/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Local environment and credentials
+.env*
+!.env.example
+secrets/
+credentials/
