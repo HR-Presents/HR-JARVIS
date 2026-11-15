@@ -34,3 +34,4 @@ __pycache__/
 !.env.example
 secrets/
 credentials/
+*.v07-backup

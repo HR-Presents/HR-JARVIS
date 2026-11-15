@@ -278,3 +278,49 @@ def preview_diff(request: DiffRequest):
         "applied": False,
         "approval_required": True,
     }
+
+
+# J.A.R.V.I.S. V0.8 — Isolated execution
+
+from backend.sandbox import execute_python
+
+
+class ExecuteRequest(BaseModel):
+    path: str = Field(min_length=1, max_length=500)
+    timeout_seconds: int = Field(default=8, ge=1, le=10)
+
+
+@router.post("/execute")
+def execute_code(request: ExecuteRequest):
+    # Reject symlinks in every requested path component.
+    relative = Path(request.path)
+
+    if relative.is_absolute() or ".." in relative.parts:
+        raise HTTPException(403, "Invalid project path")
+
+    current = ROOT
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise HTTPException(403, "Symlinked paths are prohibited")
+
+    target = safe_path(request.path)
+
+    if not target.is_file() or target.suffix != ".py":
+        raise HTTPException(422, "Expected a Python file")
+
+    if target.stat().st_size > 256_000:
+        raise HTTPException(413, "File exceeds 256 KB limit")
+
+    try:
+        source = target.read_text(encoding="utf-8")
+    except (UnicodeError, OSError):
+        raise HTTPException(422, "Cannot read Python source")
+
+    try:
+        return {
+            "path": str(target.relative_to(ROOT)),
+            **execute_python(source, request.timeout_seconds),
+        }
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(503, str(exc))
