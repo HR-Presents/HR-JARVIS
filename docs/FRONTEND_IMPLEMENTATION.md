@@ -41,3 +41,11 @@ Voice runs the existing transcribe → agent/chat → speak endpoints in stages.
 Cancellation aborts the browser request and preserves partial results. It cannot guarantee cancellation of work already running on the backend. Microphone audio is not connected to the speaker graph. Media tracks, audio nodes, object URLs, observers and animation frames are cleaned up. Reduced-motion preferences limit core motion. No new runtime dependency or Python backend changes were introduced.
 
 Redesign validation: strict production build and lint; browser checks of the core, transcript open/close, prompt insertion, failed chat, navigation expansion, voice-response toggle and audio-upload disclosure. Live microphone energy, Piper playback/replay and interruption require local browser/hardware acceptance; no model/audio response is fabricated for preview.
+
+## Minimal interface revision — 17 November 2026
+
+The default assistant screen now shows only the J.A.R.V.I.S. identity, a restrained dark-glass audio form, one microphone control, and a small “Type instead” option. HUD rings, ticks, coordinate labels, slogans, shortcuts, the persistent sidebar, visible service badges and footer were removed from this screen. Existing features remain behind one menu. The microphone control becomes Finish while recording, Cancel while waiting, and Stop while speech is playing. The latest actual response appears beneath it; the full transcript is opened from the menu.
+
+The transcript has keyboard focus management and Escape dismissal. Text input is disclosed only when selected or when a transcription populates the draft. Supporting tool workspaces retain their existing navigation. Audio handling, API contracts and Python backend code are unchanged.
+
+Verification: strict production build and lint pass. Browser checks covered the minimal initial view, text-input disclosure, request failure without fabricated output, menu access, transcript open/close, Escape focus restoration and no desktop viewport overflow. Local microphone/Piper acceptance remains outstanding.

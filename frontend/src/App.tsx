@@ -474,7 +474,7 @@ function App() {
     setMessages((m) => ({ ...m, [channel]: [] }));
     if (channel === "memory") setMemoryId(undefined);
     setError("");
-    setNotice("New conversation started.");
+    setNotice("");
   };
   const immersive = page === "Assistant" || page === "Voice assistant";
   const pending =
@@ -739,6 +739,7 @@ function App() {
                 if (!value && voiceState === "Speaking") stopSpeech();
               }}
               onUpload={uploadAudio}
+              onNew={newChat}
             />
           ) : (
             <>
