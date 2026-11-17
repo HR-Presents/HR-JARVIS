@@ -40,6 +40,8 @@ import type {
 } from "./types/api";
 import { ErrorBoundary, Markdown, Output } from "./components/Common";
 import "./App.css";
+import "./interface.css";
+import { NeuralOrb } from "./components/NeuralOrb";
 const navigation = [
   { id: "Assistant", icon: MessageSquare },
   { id: "Voice assistant", icon: AudioLines },
@@ -470,7 +472,7 @@ function App() {
     setNotice("New conversation started.");
   };
   return (
-    <div className="shell">
+    <div className={"shell " + (page === "Assistant" ? "focus-mode" : "")}>
       <aside className={menu ? "sidebar expanded" : "sidebar"}>
         <a
           className="brand"
@@ -501,6 +503,8 @@ function App() {
           {navigation.map(({ id, icon: Icon }) => (
             <button
               disabled={busy || recording}
+              title={id}
+              aria-label={id}
               className={page === id ? "nav active" : "nav"}
               key={id}
               onClick={() => navigate(id)}
@@ -548,8 +552,9 @@ function App() {
         <header className="topbar">
           <div className="breadcrumbs">
             <button
-              className="mobile"
+              className="menu-toggle"
               aria-label="Toggle menu"
+              aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
               <Menu size={19} />
@@ -806,23 +811,11 @@ function App() {
                 {feed.length === 0 ? (
                   <div className="welcome">
                     <div className="welcome-top">
-                      <span className="tiny-line" /> YOUR PERSONAL AI,
-                      REIMAGINED
+                      <span className="tiny-line" /> PERSONAL INTELLIGENCE
                     </div>
-                    <div
-                      className={
-                        "intelligence-orb " + (recording ? "listening" : "")
-                      }
-                    >
-                      <div className="orb-ring ring-one" />
-                      <div className="orb-ring ring-two" />
-                      <div className="orb-inner">
-                        <AudioLines size={40} strokeWidth={1.2} />
-                      </div>
-                      <span className="orb-spark" />
-                    </div>
+                    <NeuralOrb active={recording || busy} />
                     <div className="welcome-label">
-                      J.A.R.V.I.S. <span>IS HERE FOR YOU</span>
+                      J.A.R.V.I.S. <span>AT YOUR COMMAND</span>
                     </div>
                     <h2>
                       {page === "Voice assistant"
@@ -831,11 +824,11 @@ function App() {
                           ? "Build with confidence."
                           : page === "Memory"
                             ? "A conversation worth keeping."
-                            : "A clearer mind. A capable partner."}
+                            : "What shall we do next?"}
                     </h2>
                     <p>
                       {page === "Assistant"
-                        ? "Think out loud. Explore an idea. Get things done."
+                        ? "Speak naturally. Think freely. I’m listening."
                         : descriptions[page]}
                     </p>
                     {page === "Voice assistant" ? (
