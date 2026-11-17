@@ -2,6 +2,8 @@ import type { Dispatch, SetStateAction } from "react";
 type Setter<T> = Dispatch<SetStateAction<T>>;
 import { ArrowRight } from "lucide-react";
 interface Props {
+  agentMode: boolean;
+  setAgentMode: (value: boolean) => void;
   base: string;
   setBase: Setter<string>;
   setNotice: Setter<string>;
@@ -11,6 +13,8 @@ interface Props {
   setStreaming: Setter<boolean>;
 }
 export function SettingsPage({
+  agentMode,
+  setAgentMode,
   base,
   setBase,
   setNotice,
@@ -58,10 +62,18 @@ export function SettingsPage({
         <label className="check-label">
           <input
             type="checkbox"
+            checked={agentMode}
+            onChange={(e) => setAgentMode(e.target.checked)}
+          />{" "}
+          Enable the supervised agent and its tools
+        </label>
+        <label className="check-label">
+          <input
+            type="checkbox"
             checked={streaming}
             onChange={(e) => setStreaming(e.target.checked)}
           />{" "}
-          Stream assistant responses
+          Stream ordinary chat responses (when tools are off)
         </label>
         <h3>Connect from your machine</h3>
         <p>

@@ -24,7 +24,7 @@ The root `package.json` forwards development/build/lint and copies the static bu
 ## Workspaces
 
 - Assistant: streamed NDJSON chat, stop generation, optional non-streamed chat, session-only message history, safe Markdown rendering, read-aloud through Piper.
-- Voice: MediaRecorder WebM/Ogg, staged multipart transcription → agent reply → Piper speech, shared voice/text session history, minimal dark-glass audio core, interrupt/replay controls behind a single menu, recording/transcribing/thinking/speaking states, separate file transcription.
+- Voice: MediaRecorder WebM/Ogg, multipart conversational audio, recognized speech and response history, WAV playback with native replay controls, recording/processing/speaking states, separate file transcription.
 - Memory: backend SQLite conversation IDs, new conversations, list/open/delete. Ordinary chat and voice history are separate and are not presented as durable memory.
 - Coding: project inspection, Python-file diagnosis, code search, agent tool events and isolated Python execution requests. File writes are proposals until explicitly approved.
 - Approvals: fetch full details before acting, Python unified-diff preview, full proposed content, explicit approval/rejection, list refresh and backend-confirmed feedback. Non-Python diffs are not supplied by this backend; the complete replacement content remains visible.
@@ -33,7 +33,7 @@ The root `package.json` forwards development/build/lint and copies the static bu
 
 ## Architecture
 
-`src/features/presence` contains the minimal voice-first screen, hidden transcript/menu and canvas core; `src/hooks/useAudioReactivity.ts` manages the real microphone/playback analyser graph. `src/services/api.ts` centralizes URL selection, JSON/audio requests, timeouts, NDJSON decoding, cancellation and safe URLs. `src/types/api.ts` contains shared response models. `src/components` provides the error boundary, Markdown and diff/output renderers. Feature modules hold research, approvals, settings and status. `App.tsx` coordinates shared session state, voice recording, shell and conversation views. Strict TypeScript is enabled.
+`src/services/api.ts` centralizes URL selection, JSON/audio requests, timeouts, NDJSON decoding, cancellation and safe URLs. `src/types/api.ts` contains shared response models. `src/components` provides the error boundary, Markdown and diff/output renderers. Feature modules hold research, approvals, settings and status. `App.tsx` coordinates shared session state, voice recording, shell and conversation views. Strict TypeScript is enabled.
 
 ## Integration limits
 

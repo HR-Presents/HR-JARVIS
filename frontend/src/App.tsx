@@ -1,3 +1,4 @@
+import { speechChunks, waitForSpeech } from "./services/speech";
 import { PresenceWorkspace } from "./features/presence/PresenceWorkspace";
 import type { CoreState } from "./features/presence/IntelligenceCore";
 import { useAudioReactivity } from "./hooks/useAudioReactivity";
@@ -7,6 +8,7 @@ import { StatusPage } from "./features/status/StatusPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Activity,
   ArrowDown,
   ArrowRight,
@@ -87,9 +89,10 @@ function App() {
     [recording, setRecording] = useState(false),
     [streaming, setStreaming] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [agentMode, setAgentMode] = useState(true);
   const voiceEnabledRef = useRef(true);
   const audioGraph = useAudioReactivity();
-  const spokenUrl = useRef<string | undefined>(undefined);
+  const speechPlaylist = useRef<string[]>([]);
   const playbackEpoch = useRef(0);
   const mounted = useRef(true);
   const operation = useRef(false);
@@ -143,7 +146,7 @@ function App() {
       abort.current?.abort();
       media.current?.getTracks().forEach((t) => t.stop());
       audio.current?.pause();
-      if (spokenUrl.current) URL.revokeObjectURL(spokenUrl.current);
+      for (const url of speechPlaylist.current) URL.revokeObjectURL(url);
     };
   }, [refresh]);
   useEffect(() => {
@@ -154,6 +157,13 @@ function App() {
     operation.current = true;
     const controller = new AbortController();
     abort.current = controller;
+    const timeout = setTimeout(
+      () =>
+        controller.abort(
+          new DOMException("The request timed out.", "TimeoutError"),
+        ),
+      240000,
+    );
     setBusy(true);
     setError("");
     setNotice("");
@@ -171,6 +181,7 @@ function App() {
               : "Request failed. Check your backend connection.",
         );
     } finally {
+      clearTimeout(timeout);
       if (abort.current === controller) abort.current = null;
       operation.current = false;
       setBusy(false);
@@ -210,7 +221,7 @@ function App() {
       [channel]: [...feed, { role: "user", content: message }],
     }));
     void run(async () => {
-      if (channel === "chat" && streaming) {
+      if (channel === "chat" && streaming && !agentMode) {
         setMessages((m) => ({
           ...m,
           chat: [...m.chat, { role: "assistant", content: "" }],
@@ -249,7 +260,7 @@ function App() {
         const r = await request<Reply>(
           channel === "memory"
             ? "/api/memory/chat"
-            : channel === "chat"
+            : channel === "chat" && !agentMode
               ? "/api/chat"
               : "/api/agent/chat",
           channel === "memory"
@@ -313,19 +324,40 @@ function App() {
     }
   };
   const speak = async (text: string) => {
-    setVoiceState("Preparing voice");
+    const signal = abort.current?.signal;
+    for (const url of speechPlaylist.current) URL.revokeObjectURL(url);
+    speechPlaylist.current = [];
+    setLastAudio("");
     try {
-      const blob = await request<Blob>("/api/voice/speak", {
-        text: text.slice(0, 2000),
-      });
-      if (spokenUrl.current) URL.revokeObjectURL(spokenUrl.current);
-      const url = URL.createObjectURL(blob);
-      spokenUrl.current = url;
-      setLastAudio(url);
-      await play(url);
+      for (const chunk of speechChunks(text)) {
+        if (signal?.aborted || !voiceEnabledRef.current) break;
+        setVoiceState("Preparing voice");
+        const blob = await request<Blob>("/api/voice/speak", { text: chunk });
+        const url = URL.createObjectURL(blob);
+        speechPlaylist.current.push(url);
+        setLastAudio(url);
+        await play(url);
+        if (!audio.current || !(await waitForSpeech(audio.current, signal)))
+          break;
+      }
     } catch (e) {
       setVoiceState("Ready to listen");
       throw e;
+    }
+  };
+  const replaySpeech = async () => {
+    await audioGraph.unlock();
+    const playlist = speechPlaylist.current.length
+      ? [...speechPlaylist.current]
+      : [lastAudio];
+    for (const url of playlist) {
+      if (abort.current?.signal.aborted) break;
+      await play(url);
+      if (
+        !audio.current ||
+        !(await waitForSpeech(audio.current, abort.current?.signal))
+      )
+        break;
     }
   };
   const cancelRequest = () => {
@@ -468,6 +500,8 @@ function App() {
     setInput("");
     if (page === "Voice assistant" || page === "Assistant") {
       stopSpeech();
+      for (const url of speechPlaylist.current) URL.revokeObjectURL(url);
+      speechPlaylist.current = [];
       setLastAudio("");
       setVoiceState("Ready to listen");
     }
@@ -614,7 +648,12 @@ function App() {
             >
               <Menu size={19} />
             </button>
-            <span>Workspace</span>
+            <button
+              className="back-assistant"
+              onClick={() => navigate("Assistant")}
+            >
+              <ArrowLeft size={14} /> Assistant
+            </button>
             <span className="slash">/</span>
             <strong>{page}</strong>
           </div>
@@ -674,6 +713,8 @@ function App() {
           )}
           {page === "Settings" ? (
             <SettingsPage
+              agentMode={agentMode}
+              setAgentMode={setAgentMode}
               base={base}
               setBase={setBase}
               setNotice={setNotice}
@@ -725,12 +766,7 @@ function App() {
               onSend={send}
               onStop={cancelRequest}
               canReplay={!!lastAudio}
-              onReplay={() =>
-                void run(async () => {
-                  await audioGraph.unlock();
-                  await play(lastAudio);
-                })
-              }
+              onReplay={() => void run(replaySpeech)}
               onNavigate={navigate}
               voiceEnabled={voiceEnabled}
               setVoiceEnabled={(value) => {
@@ -740,6 +776,8 @@ function App() {
               }}
               onUpload={uploadAudio}
               onNew={newChat}
+              agentMode={agentMode}
+              setAgentMode={setAgentMode}
             />
           ) : (
             <>
