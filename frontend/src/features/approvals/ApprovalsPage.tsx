@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 type Setter<T> = Dispatch<SetStateAction<T>>;
 import { Check, RefreshCw, ShieldCheck } from "lucide-react";
 import type { Approval } from "../../types/api";
+import { WindowsActionProposals } from "./WindowsActionProposals";
 import { request } from "../../services/api";
 import { Output, DiffPreview } from "../../components/Common";
 interface Props {
@@ -28,6 +29,7 @@ export function ApprovalsPage({
 }: Props) {
   return (
     <section className="tool-page">
+      <WindowsActionProposals />
       <div className="section-line">
         <p>Every proposed change deserves your attention.</p>
         <button onClick={() => void run(loadApprovals)} disabled={busy}>

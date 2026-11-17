@@ -28,7 +28,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { getBase, request, stream } from "./services/api";
+import { getBase, request } from "./services/api";
 import type {
   Approval,
   Conversation,
@@ -82,12 +82,16 @@ function App() {
     [base, setBase] = useState(getBase()),
     [voiceState, setVoiceState] = useState("Ready to listen"),
     [recording, setRecording] = useState(false),
+    [handsFree, setHandsFree] = useState(false),
     [streaming, setStreaming] = useState(true);
   const operation = useRef(false);
   const recorder = useRef<MediaRecorder | null>(null),
     audio = useRef<HTMLAudioElement | null>(null),
     media = useRef<MediaStream | null>(null),
     abort = useRef<AbortController | null>(null),
+    handsFreeRecognition = useRef<any>(null),
+    handsFreeEnabled = useRef(false),
+    handsFreeBusy = useRef(false),
     end = useRef<HTMLDivElement>(null);
   const channel =
     page === "Memory"
@@ -187,39 +191,12 @@ function App() {
       [channel]: [...feed, { role: "user", content: message }],
     }));
     void run(async () => {
-      if (channel === "chat" && streaming) {
-        setMessages((m) => ({
-          ...m,
-          chat: [...m.chat, { role: "assistant", content: "" }],
-        }));
-        const c = new AbortController();
-        abort.current = c;
-        const timeout = setTimeout(() => c.abort(), 240000);
-        try {
-          await stream(
-            message,
-            history,
-            (token) =>
-              setMessages((m) => ({
-                ...m,
-                chat: m.chat.map((v, i) =>
-                  i === m.chat.length - 1
-                    ? { ...v, content: v.content + token }
-                    : v,
-                ),
-              })),
-            c.signal,
-          );
-        } finally {
-          clearTimeout(timeout);
-          abort.current = null;
-        }
-      } else {
+      {
         const r = await request<Reply>(
           channel === "memory"
             ? "/api/memory/chat"
             : channel === "chat"
-              ? "/api/chat"
+              ? "/api/agent/chat"
               : "/api/agent/chat",
           channel === "memory"
             ? { message, conversation_id: memoryId }
@@ -252,6 +229,147 @@ function App() {
       );
     }
   };
+  const stopHandsFree = () => {
+    handsFreeEnabled.current = false;
+    setHandsFree(false);
+    handsFreeRecognition.current?.abort();
+    handsFreeRecognition.current = null;
+    setVoiceState("Ready to listen");
+  };
+
+  const startHandsFree = async () => {
+    const browser = window as any;
+    const SpeechRecognition =
+      browser.SpeechRecognition || browser.webkitSpeechRecognition;
+    if (!SpeechRecognition)
+      throw new Error(
+        "Hands-free recognition is unavailable in this browser. Use microphone recording instead.",
+      );
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-GB";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    handsFreeEnabled.current = true;
+    setHandsFree(true);
+    setVoiceState("Waiting for wake phrase");
+    handsFreeRecognition.current = recognition;
+
+    let awake = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const restart = () => {
+      if (!handsFreeEnabled.current || handsFreeBusy.current) return;
+      try {
+        recognition.start();
+      } catch {
+        // Recognition may still be transitioning between sessions.
+      }
+    };
+
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (!event.results[i].isFinal) continue;
+        const transcript = String(event.results[i][0].transcript).trim();
+        const normalized = transcript
+          .toLowerCase()
+          .replace(/[^a-z0-9 ]/g, "")
+          .replace(/\\s+/g, " ")
+          .trim();
+
+        if (!awake) {
+          if (
+            normalized.includes("wake up daddys home") ||
+            normalized.includes("wake up daddy is home")
+          ) {
+            awake = true;
+            setVoiceState("Listening for your command");
+            if (timeout) clearTimeout(timeout);
+            timeout = setTimeout(() => {
+              awake = false;
+              setVoiceState("Waiting for wake phrase");
+            }, 12000);
+          }
+          continue;
+        }
+
+        if (!transcript) continue;
+        awake = false;
+        if (timeout) clearTimeout(timeout);
+        handsFreeBusy.current = true;
+        recognition.abort();
+        setVoiceState("Processing");
+
+        void (async () => {
+          try {
+            const response = await request<Reply>("/api/agent/chat", {
+              message: transcript,
+              history: [],
+              context: "backend",
+            });
+            setMessages((m) => ({
+              ...m,
+              voice: [
+                ...(m.voice || []),
+                { role: "user", content: transcript },
+                { role: "assistant", content: response.response, events: response.events },
+              ],
+            }));
+
+            const speech = await request<Blob>("/api/voice/speak", {
+              text: response.response
+                .replace(/```[\\s\\S]*?```/g, " Code example omitted. ")
+                .replace(/https?:\/\/\S+/g, " ")
+                .replace(/[`*_#~>|]/g, " ")
+                .slice(0, 2000),
+            });
+            const url = URL.createObjectURL(speech);
+            try {
+              await play(url);
+              await new Promise<void>((resolve) => {
+                const player = audio.current;
+                if (!player || player.ended || player.paused) {
+                  resolve();
+                  return;
+                }
+                player.addEventListener("ended", () => resolve(), { once: true });
+                player.addEventListener("error", () => resolve(), { once: true });
+              });
+            } finally {
+              URL.revokeObjectURL(url);
+            }
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          } finally {
+            handsFreeBusy.current = false;
+            if (handsFreeEnabled.current) {
+              setVoiceState("Waiting for wake phrase");
+              restart();
+            }
+          }
+        })();
+        break;
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        stopHandsFree();
+        setError("Microphone or speech recognition permission was denied.");
+      } else if (event.error !== "aborted" && handsFreeEnabled.current) {
+        setVoiceState("Recognition interrupted");
+      }
+    };
+    recognition.onend = restart;
+
+    try {
+      recognition.start();
+    } catch (err) {
+      stopHandsFree();
+      throw err;
+    }
+  };
+
   const toggleRecord = async () => {
     if (recording) {
       recorder.current?.stop();
@@ -738,8 +856,20 @@ function App() {
                         </button>
                         <span>{voiceState}</span>
                         <small>
-                          Click to talk · No browser wake-word listening
+                          Click to talk · Optional browser hands-free mode
                         </small>
+                        <button
+                          type="button"
+                          disabled={recording || busy}
+                          onClick={() => {
+                            if (handsFree) stopHandsFree();
+                            else void startHandsFree().catch((err) =>
+                              setError(err instanceof Error ? err.message : String(err))
+                            );
+                          }}
+                        >
+                          {handsFree ? "Disable hands-free" : "Enable hands-free"}
+                        </button>
                       </div>
                     ) : (
                       <div className="suggestion-grid">
@@ -830,7 +960,17 @@ function App() {
                                 void run(async () => {
                                   const blob = await request<Blob>(
                                     "/api/voice/speak",
-                                    { text: m.content.slice(0, 2000) },
+                                    {
+                                      text: m.content
+                                        .replace(/```[\s\S]*?```/g, " Code example omitted. ")
+                                        .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+                                        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+                                        .replace(/https?:\/\/\S+/g, " ")
+                                        .replace(/[`*_#~>|]/g, " ")
+                                        .replace(/\s+/g, " ")
+                                        .trim()
+                                        .slice(0, 2000),
+                                    },
                                   );
                                   const url = URL.createObjectURL(blob);
                                   try {
