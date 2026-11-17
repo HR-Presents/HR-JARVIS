@@ -29,3 +29,9 @@ The private Sites deployment serves the frontend. The Python backend remains loc
 ## Run
 
 Install existing dependencies using npm --prefix frontend install. Start the existing Python backend on port 8100 following its README, then npm run dev. Development uses the Vite /api proxy. For a hosted frontend, configure the backend URL in Settings and ensure the backend permits that origin and browser network policy allows access. Never commit local secrets.
+
+## Procedural core update
+
+The image-based core has been replaced by lazily loaded Three.js geometry and shaders: flowing meridians, cross sections, a separately rotating inner lattice, three partial orbital strands and a texture-free nucleus. A perspective-projected Canvas renderer provides animated 3D geometry if WebGL cannot initialize. Listening/speaking use actual time-domain audio samples; processing, approval and error profiles transition smoothly. Reduced motion limits rotation/deformation, hidden tabs pause updates, pixel density/frame rate are capped, and resources are disposed on unmount.
+
+Build, lint and seven frontend tests pass, including silence/real waveform metering and frame-rate-independent state transitions. The managed browser has WebGL disabled; its Canvas fallback was visually inspected. GPU rendering and real audio-reactive movement still require target-device acceptance. No backend changes in this update.
