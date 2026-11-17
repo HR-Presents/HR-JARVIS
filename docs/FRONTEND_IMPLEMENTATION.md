@@ -29,3 +29,15 @@ Full model generation, microphone capture, speech synthesis, live web research a
 ## Delivery
 
 Source belongs on `frontend-development`, with a pull request targeting `main`. The Sites deployment hosts the static frontend privately; backend services stay on the developer/client machine. This delivery is a frontend implementation, not a Windows executable package or completed local hardware acceptance.
+
+## Voice-first presence redesign — 17 November 2026
+
+The Assistant and Voice screens now share a voice command space: procedural animated core, compact icon rail with expandable navigation, optional transcript drawer, latest exchange, backend-returned activity chips, text composer and click-to-talk recording. Voice and typed input share session history; persistent Memory remains separate.
+
+The core visualizes actual microphone and playback energy through a Web Audio analyser. Idle orbital motion is decorative. No simulated microphone levels, tool activity, system metrics or AI output are used. Distinct states reflect recording, transcription, pending model request, speech generation, actual playback, returned pending-approval events and errors. The backend returns tool events after processing; the UI does not claim to stream live tool progress.
+
+Voice runs the existing transcribe → agent/chat → speak endpoints in stages. Recognized text is retained if AI generation fails, and both messages are retained if Piper is unavailable. Voice output can be disabled, interrupted or replayed; interruption stops audio without automatic re-recording. Tapping the core while speaking interrupts playback and starts an explicitly requested recording. Recorded audio is bounded to two minutes and 15 MB. Speech output currently uses the endpoint's first-2,000-character limit; the full response remains in the transcript.
+
+Cancellation aborts the browser request and preserves partial results. It cannot guarantee cancellation of work already running on the backend. Microphone audio is not connected to the speaker graph. Media tracks, audio nodes, object URLs, observers and animation frames are cleaned up. Reduced-motion preferences limit core motion. No new runtime dependency or Python backend changes were introduced.
+
+Redesign validation: strict production build and lint; browser checks of the core, transcript open/close, prompt insertion, failed chat, navigation expansion, voice-response toggle and audio-upload disclosure. Live microphone energy, Piper playback/replay and interruption require local browser/hardware acceptance; no model/audio response is fabricated for preview.

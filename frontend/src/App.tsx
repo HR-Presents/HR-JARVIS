@@ -1,3 +1,6 @@
+import { PresenceWorkspace } from "./features/presence/PresenceWorkspace";
+import type { CoreState } from "./features/presence/IntelligenceCore";
+import { useAudioReactivity } from "./hooks/useAudioReactivity";
 import { ResearchPage } from "./features/research/ResearchPage";
 import { ApprovalsPage } from "./features/approvals/ApprovalsPage";
 import { StatusPage } from "./features/status/StatusPage";
@@ -28,7 +31,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { getBase, request, stream } from "./services/api";
+import { getBase, request as apiRequest, stream } from "./services/api";
 import type {
   Approval,
   Conversation,
@@ -36,10 +39,10 @@ import type {
   Reply,
   Research,
   Status,
-  VoiceReply,
 } from "./types/api";
 import { ErrorBoundary, Markdown, Output } from "./components/Common";
 import "./App.css";
+import "./features/presence/presence.css";
 const navigation = [
   { id: "Assistant", icon: MessageSquare },
   { id: "Voice assistant", icon: AudioLines },
@@ -83,6 +86,12 @@ function App() {
     [voiceState, setVoiceState] = useState("Ready to listen"),
     [recording, setRecording] = useState(false),
     [streaming, setStreaming] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const voiceEnabledRef = useRef(true);
+  const audioGraph = useAudioReactivity();
+  const spokenUrl = useRef<string | undefined>(undefined);
+  const playbackEpoch = useRef(0);
+  const mounted = useRef(true);
   const operation = useRef(false);
   const recorder = useRef<MediaRecorder | null>(null),
     audio = useRef<HTMLAudioElement | null>(null),
@@ -92,19 +101,23 @@ function App() {
   const channel =
     page === "Memory"
       ? "memory"
-      : page === "Voice assistant"
-        ? "voice"
-        : page === "Coding assistant"
-          ? "coding"
-          : "chat";
+      : page === "Coding assistant"
+        ? "coding"
+        : "chat";
   const feed = messages[channel] || [];
+  const request = <T,>(
+    path: string,
+    body?: unknown,
+    method = body === undefined ? "GET" : "POST",
+    signal?: AbortSignal,
+  ) => apiRequest<T>(path, body, method, signal || abort.current?.signal);
   const refresh = useCallback(async () => {
     const entries = await Promise.all(
       services.map(async (s) => {
         try {
           return [
             s,
-            await request<Status>(
+            await apiRequest<Status>(
               s === "health" ? "/api/health" : `/api/${s}/status`,
               undefined,
               "GET",
@@ -120,14 +133,17 @@ function App() {
     setChecked(true);
   }, []);
   useEffect(() => {
+    mounted.current = true;
     const initial = setTimeout(() => void refresh(), 0);
     const t = setInterval(() => void refresh(), 30000);
     return () => {
+      mounted.current = false;
       clearTimeout(initial);
       clearInterval(t);
       abort.current?.abort();
       media.current?.getTracks().forEach((t) => t.stop());
       audio.current?.pause();
+      if (spokenUrl.current) URL.revokeObjectURL(spokenUrl.current);
     };
   }, [refresh]);
   useEffect(() => {
@@ -136,6 +152,8 @@ function App() {
   const run = async (fn: () => Promise<void>) => {
     if (operation.current) return;
     operation.current = true;
+    const controller = new AbortController();
+    abort.current = controller;
     setBusy(true);
     setError("");
     setNotice("");
@@ -153,6 +171,7 @@ function App() {
               : "Request failed. Check your backend connection.",
         );
     } finally {
+      if (abort.current === controller) abort.current = null;
       operation.current = false;
       setBusy(false);
     }
@@ -169,6 +188,7 @@ function App() {
   };
   const navigate = (p: string) => {
     if (recording || busy) return;
+    stopSpeech();
     setPage(p);
     setInput("");
     setMenu(false);
@@ -180,7 +200,10 @@ function App() {
   const send = () => {
     const message = input.trim();
     if (!message || operation.current) return;
-    const history = feed.map(({ role, content }) => ({ role, content }));
+    stopSpeech();
+    const history = feed
+      .filter((m) => m.content)
+      .map(({ role, content }) => ({ role, content }));
     setInput("");
     setMessages((m) => ({
       ...m,
@@ -192,14 +215,16 @@ function App() {
           ...m,
           chat: [...m.chat, { role: "assistant", content: "" }],
         }));
-        const c = new AbortController();
-        abort.current = c;
+        const c = abort.current!;
         const timeout = setTimeout(() => c.abort(), 240000);
+        let fullResponse = "";
+        setVoiceState("Thinking");
         try {
           await stream(
             message,
             history,
-            (token) =>
+            (token) => {
+              fullResponse += token;
               setMessages((m) => ({
                 ...m,
                 chat: m.chat.map((v, i) =>
@@ -207,13 +232,19 @@ function App() {
                     ? { ...v, content: v.content + token }
                     : v,
                 ),
-              })),
+              }));
+            },
             c.signal,
           );
         } finally {
           clearTimeout(timeout);
-          abort.current = null;
         }
+        if (
+          voiceEnabledRef.current &&
+          fullResponse &&
+          statuses.voice?.piper_configured === true
+        )
+          await speak(fullResponse);
       } else {
         const r = await request<Reply>(
           channel === "memory"
@@ -234,23 +265,72 @@ function App() {
           ],
         }));
         if (channel === "memory") await loadMemory();
+        if (
+          voiceEnabledRef.current &&
+          r.response &&
+          statuses.voice?.piper_configured === true
+        )
+          await speak(r.response);
       }
     });
   };
-  const play = async (src: string) => {
+  const stopSpeech = () => {
+    playbackEpoch.current++;
     audio.current?.pause();
+    audioGraph.detach();
+    setVoiceState("Ready to listen");
+  };
+  const play = async (src: string) => {
+    stopSpeech();
+    const epoch = playbackEpoch.current;
     const a = new Audio(src);
     audio.current = a;
-    setVoiceState("Speaking");
-    a.onended = () => setVoiceState("Ready to listen");
+    a.onended = () => {
+      if (epoch === playbackEpoch.current) {
+        audioGraph.detach();
+        setVoiceState("Ready to listen");
+      }
+    };
+    a.onerror = () => {
+      if (epoch === playbackEpoch.current) {
+        audioGraph.detach();
+        setVoiceState("Ready to listen");
+        setError("Speech audio could not be played. You can retry Replay.");
+      }
+    };
     try {
+      await audioGraph.playback(a);
+      if (epoch !== playbackEpoch.current) {
+        audioGraph.detach();
+        return;
+      }
       await a.play();
+      if (epoch === playbackEpoch.current) setVoiceState("Speaking");
     } catch {
+      audioGraph.detach();
       setVoiceState("Playback blocked");
-      throw new Error(
-        "Audio playback was blocked. Use the play button to listen.",
-      );
+      throw new Error("Audio playback was blocked. Use Replay to listen.");
     }
+  };
+  const speak = async (text: string) => {
+    setVoiceState("Preparing voice");
+    try {
+      const blob = await request<Blob>("/api/voice/speak", {
+        text: text.slice(0, 2000),
+      });
+      if (spokenUrl.current) URL.revokeObjectURL(spokenUrl.current);
+      const url = URL.createObjectURL(blob);
+      spokenUrl.current = url;
+      setLastAudio(url);
+      await play(url);
+    } catch (e) {
+      setVoiceState("Ready to listen");
+      throw e;
+    }
+  };
+  const cancelRequest = () => {
+    abort.current?.abort();
+    stopSpeech();
   };
   const toggleRecord = async () => {
     if (recording) {
@@ -258,13 +338,20 @@ function App() {
       setRecording(false);
       return;
     }
+    stopSpeech();
+    await audioGraph.unlock();
     await run(async () => {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
         throw new Error(
           "Microphone recording requires a supported browser and a secure connection.",
         );
       const device = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (abort.current?.signal.aborted || !mounted.current) {
+        device.getTracks().forEach((t) => t.stop());
+        throw new DOMException("Recording cancelled", "AbortError");
+      }
       media.current = device;
+      await audioGraph.microphone(device);
       try {
         const mime = ["audio/webm", "audio/ogg"].find((x) =>
           MediaRecorder.isTypeSupported(x),
@@ -276,49 +363,87 @@ function App() {
         const rec = new MediaRecorder(device, { mimeType: mime });
         recorder.current = rec;
         const chunks: Blob[] = [];
-        rec.ondataavailable = (e) => chunks.push(e.data);
+        let bytes = 0;
+        const recordingLimit = setTimeout(() => {
+          if (rec.state === "recording") rec.stop();
+        }, 120000);
+        rec.ondataavailable = (e) => {
+          chunks.push(e.data);
+          bytes += e.data.size;
+          if (bytes > 15 * 1024 * 1024 && rec.state === "recording") rec.stop();
+        };
         rec.onerror = () => {
+          clearTimeout(recordingLimit);
+          audioGraph.detach();
+          setVoiceState("Ready to listen");
           device.getTracks().forEach((t) => t.stop());
           setRecording(false);
           setError("Microphone recording failed.");
         };
         rec.onstop = () => {
+          clearTimeout(recordingLimit);
+          audioGraph.detach();
           device.getTracks().forEach((t) => t.stop());
+          if (!mounted.current) return;
           setRecording(false);
           void run(async () => {
-            setVoiceState("Processing");
+            if (bytes > 15 * 1024 * 1024)
+              throw new Error(
+                "Recording exceeds the 15 MB audio limit. Please make a shorter recording.",
+              );
+            setVoiceState("Transcribing");
             const data = new FormData();
             data.append(
               "file",
               new Blob(chunks, { type: mime }),
               mime.includes("ogg") ? "recording.ogg" : "recording.webm",
             );
-            data.append(
-              "history",
-              JSON.stringify(
-                feed.map(({ role, content }) => ({ role, content })).slice(-20),
-              ),
-            );
             try {
-              const r = await request<VoiceReply>("/api/voice/converse", data);
+              const transcription = await request<{ text: string }>(
+                "/api/voice/transcribe",
+                data,
+              );
+              if (!transcription.text.trim())
+                throw new Error("No recognizable speech. Please try again.");
               setMessages((m) => ({
                 ...m,
-                voice: [
-                  ...(m.voice || []),
-                  { role: "user", content: r.transcription },
+                [channel]: [
+                  ...(m[channel] || []),
+                  { role: "user", content: transcription.text },
+                ],
+              }));
+              setVoiceState("Thinking");
+              const r = await request<Reply>("/api/agent/chat", {
+                message: transcription.text,
+                history: feed
+                  .filter((m) => m.content)
+                  .map(({ role, content }) => ({ role, content }))
+                  .slice(-20),
+                context:
+                  "This is a voice conversation. Answer naturally and concisely. Never claim an action succeeded unless the tool result confirms it. Proposed changes and desktop actions are not executed actions.",
+              });
+              setMessages((m) => ({
+                ...m,
+                [channel]: [
+                  ...(m[channel] || []),
                   { role: "assistant", content: r.response, events: r.events },
                 ],
               }));
-              const src = "data:audio/wav;base64," + r.audio_base64;
-              setLastAudio(src);
-              await play(src);
+              if (voiceEnabledRef.current && r.response) {
+                if (statuses.voice?.piper_configured === true)
+                  await speak(r.response);
+                else
+                  setNotice(
+                    "Reply received. Piper speech is not configured; the text is preserved.",
+                  );
+              }
             } finally {
               if (!audio.current || audio.current.paused)
                 setVoiceState("Ready to listen");
             }
           });
         };
-        rec.start();
+        rec.start(1000);
         setRecording(true);
         setVoiceState("Listening");
       } catch (e) {
@@ -341,8 +466,8 @@ function App() {
     )
       setPage("Assistant");
     setInput("");
-    if (page === "Voice assistant") {
-      audio.current?.pause();
+    if (page === "Voice assistant" || page === "Assistant") {
+      stopSpeech();
       setLastAudio("");
       setVoiceState("Ready to listen");
     }
@@ -351,11 +476,62 @@ function App() {
     setError("");
     setNotice("New conversation started.");
   };
+  const immersive = page === "Assistant" || page === "Voice assistant";
+  const pending =
+    feed
+      .findLast((m) => m.events?.length)
+      ?.events?.some((event) => {
+        const r = (
+          event as { result?: { status?: string; approval_id?: string } }
+        ).result;
+        return (
+          r?.status === "pending_approval" &&
+          !approvals.some(
+            (a) => a.id === r.approval_id && a.status !== "pending",
+          )
+        );
+      }) || false;
+  const coreState: CoreState = recording
+    ? "listening"
+    : voiceState === "Speaking"
+      ? "speaking"
+      : busy
+        ? voiceState === "Transcribing"
+          ? "transcribing"
+          : voiceState === "Preparing voice"
+            ? "synthesizing"
+            : "thinking"
+        : error
+          ? "error"
+          : pending
+            ? "approval"
+            : "standby";
+  const uploadAudio = (file: File) =>
+    void run(async () => {
+      if (file.size > 15 * 1024 * 1024)
+        throw new Error("Audio exceeds the 15 MB backend limit.");
+      setVoiceState("Transcribing");
+      try {
+        const data = new FormData();
+        data.append("file", file);
+        const r = await request<{ text: string }>(
+          "/api/voice/transcribe",
+          data,
+        );
+        setInput(r.text);
+        setNotice(
+          "Transcription ready. Review the text and send when you are ready.",
+        );
+      } finally {
+        setVoiceState("Ready to listen");
+      }
+    });
   return (
-    <div className="shell">
+    <div className={immersive ? "shell immersive" : "shell"}>
       <aside className={menu ? "sidebar expanded" : "sidebar"}>
         <a
           className="brand"
+          aria-label="J.A.R.V.I.S. home"
           href="#"
           onClick={(e) => {
             e.preventDefault();
@@ -372,6 +548,7 @@ function App() {
           <span className="version">01</span>
         </a>
         <button
+          title="New conversation"
           className="new-chat"
           onClick={newChat}
           disabled={busy || recording}
@@ -432,6 +609,7 @@ function App() {
             <button
               className="mobile"
               aria-label="Toggle menu"
+              aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
               <Menu size={19} />
@@ -526,6 +704,41 @@ function App() {
               run={run}
               research={research}
               setResearch={setResearch}
+            />
+          ) : immersive ? (
+            <PresenceWorkspace
+              state={coreState}
+              analyser={audioGraph.analyser}
+              messages={feed}
+              input={input}
+              setInput={setInput}
+              busy={busy}
+              recording={recording}
+              online={online}
+              modelReady={modelReady}
+              voiceReady={statuses.voice?.piper_configured === true}
+              statuses={statuses}
+              model={
+                typeof health?.model === "string" ? health.model : "Local AI"
+              }
+              onRecord={() => void toggleRecord()}
+              onSend={send}
+              onStop={cancelRequest}
+              canReplay={!!lastAudio}
+              onReplay={() =>
+                void run(async () => {
+                  await audioGraph.unlock();
+                  await play(lastAudio);
+                })
+              }
+              onNavigate={navigate}
+              voiceEnabled={voiceEnabled}
+              setVoiceEnabled={(value) => {
+                voiceEnabledRef.current = value;
+                setVoiceEnabled(value);
+                if (!value && voiceState === "Speaking") stopSpeech();
+              }}
+              onUpload={uploadAudio}
             />
           ) : (
             <>
