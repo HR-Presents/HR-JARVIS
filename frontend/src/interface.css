@@ -1,0 +1,40 @@
+/* The interface stays quiet; the intelligence core carries the visual identity. */
+body { font-family: 'DM Sans', 'Segoe UI', sans-serif; }
+.shell { background:#050910; }
+.sidebar { width:84px; padding:27px 14px 0; background:#070d16; border-color:#172235; transition:width .25s ease; }
+.brand { padding:0; justify-content:center; }
+.logo-mark { background:transparent; border:1px solid #375c86; border-radius:50%; width:39px; height:39px; color:#9ecfff; box-shadow:0 0 24px #2889ee12; }
+.brand>div:nth-child(2), .version,.nav-label,.new-chat>span,.local-info,.account>div:not(.avatar),.account>svg { display:none; }
+.new-chat { font-size:0; padding:14px; margin:34px 0 27px; justify-content:center; background:#101e30; border-color:#2a4160; }
+.nav { font-size:0; justify-content:center; padding:15px 0; margin-bottom:10px; border-radius:12px; color:#6a829f; }
+.nav.active { background:#12243d; border-color:#2a476c; color:#97ccff; box-shadow:inset 2px 0 #78b8ff; }
+.active-dot,.nav>.dot { display:none; }
+.sidebar-bottom { padding-top:30px; }
+.account { justify-content:center; padding:22px 0; }
+.main { margin-left:84px; width:calc(100% - 84px); background:radial-gradient(ellipse at 50% 42%,#0c234044,transparent 48%),#050a12; }
+.topbar { height:84px; border-bottom:0; padding:0 42px; }
+.breadcrumbs { font-size:11px; letter-spacing:.4px; }
+.breadcrumbs>span { display:none; }
+.breadcrumbs strong { text-transform:uppercase; font-size:10px; letter-spacing:2.5px; color:#b0c9e6; }
+.top-actions { gap:15px; }.local-tag { display:none; }.connection { color:#8b9eb7; }
+.menu-toggle { display:grid; place-items:center; background:transparent; border:0; color:#7f9bb9; padding:6px; }
+main { padding:18px 48px 0; min-height:calc(100dvh - 120px); }
+.workspace-head { padding-bottom:10px; }.eyebrow { letter-spacing:2px; color:#647f9e; }
+h1 { font-size:26px; color:#dbe9f7; }.model-pill { background:transparent; border-color:#213047; color:#96acc4; }
+.focus-mode .workspace-head { position:absolute; top:32px; left:50%; transform:translateX(-50%); padding:0; }
+.focus-mode .workspace-head>div:first-child { display:none; }.focus-mode .model-pill { border:0; font-size:10px; }.focus-mode .model-pill>span:last-child { display:none; }
+.conversation { min-height:470px; }.welcome { padding:0 0 24px; }
+.welcome-top { color:#657e9c; letter-spacing:3.5px; font-size:9px; }.tiny-line { background:#375373; }
+.neural-orb { display:block; width:clamp(280px,38vh,430px); aspect-ratio:1; margin:-5px auto -9px; }
+.welcome-label { font-family:'Space Grotesk','Segoe UI',sans-serif; font-size:13px; letter-spacing:6px; color:#b8dbff; }
+.welcome-label span { display:block; margin:12px 0 0; color:#5b7c9f; font-size:8px; letter-spacing:3px; }
+.welcome h2 { margin:26px 0 12px; font-size:clamp(25px,3vw,39px); font-weight:400; letter-spacing:-1.2px; color:#e2ecfa; }
+.welcome p { color:#7e93ae; font-size:12px; }
+.suggestion-grid { margin-top:26px; gap:24px; }.suggestion-grid button { flex:initial; padding:9px 0; background:transparent; border:0; border-radius:0; gap:9px; color:#8ea6c2; }.suggestion-grid button:hover { background:transparent; color:#d9eaff; }.suggestion-grid button>svg { display:none; }.suggestion-grid strong { font-size:10px; }.suggestion-grid button>span { color:#6e9dca; }.suggestion-grid button>span svg { width:14px; }
+.composer-area { max-width:760px; margin:10px auto 28px; }.composer { background:linear-gradient(120deg,#111e30b0,#0d1725d9); border:1px solid #2a4160; border-radius:18px; padding:18px 20px 12px; box-shadow:0 10px 60px #0003,inset 0 1px #ffffff05; }.composer:focus-within { border-color:#5484b7; }.composer textarea { font-size:13px; }.send { background:#9acaff !important; color:#0a2340; border-radius:50%; width:34px; height:34px; }.composer-note { color:#617995; font-size:9px; padding-top:13px; }
+footer { border-color:#122033; color:#56708e; height:36px; font-size:7px; }
+.has-messages { min-height:260px; }.message-list { max-width:760px; }.message { border-color:#17273b; }.message-avatar { background:#102640; border-color:#29496c; }.markdown { color:#c0cfe0; }.markdown code { color:#afd3ff; }
+.sidebar.expanded { width:246px; box-shadow:20px 0 80px #0008; }.sidebar.expanded .brand>div:nth-child(2) { display:block; }.sidebar.expanded .brand { justify-content:flex-start; gap:10px; }.sidebar.expanded .brand b { font-size:15px; }.sidebar.expanded .brand small { font-size:7px; }.sidebar.expanded .nav { font-size:12px; justify-content:flex-start; padding:13px; }.sidebar.expanded .new-chat { font-size:11px; }.sidebar.expanded .account>div { display:block; }.sidebar.expanded .account { gap:12px; }
+@media(min-width:1500px) { .welcome { padding-bottom:25px; }.welcome h2 { font-size:39px; } }
+@media(max-width:750px) { .sidebar { display:none; top:72px; }.sidebar.expanded { display:flex; }.main { margin-left:0; width:100%; }.topbar { height:72px; padding:0 18px; }.focus-mode .workspace-head { display:none; }main { padding:16px 20px 0; min-height:calc(100dvh - 108px); }.connection { font-size:9px; }.conversation { min-height:460px; }.neural-orb { width:min(330px,84vw); }.welcome-top { font-size:8px; }.welcome h2 { max-width:none; }.welcome p { max-width:none; }.suggestion-grid { flex-direction:row; flex-wrap:wrap; gap:8px 18px; }.suggestion-grid button { padding:5px 0; }.composer-area { margin-bottom:18px; }.composer-note>span:last-child { display:none; }.has-messages { min-height:260px; } }
+@media(max-height:780px) and (min-width:751px) { .neural-orb { width:285px; }.welcome h2 { margin-top:20px; font-size:30px; }.conversation { min-height:410px; }.welcome { padding-bottom:10px; } }
