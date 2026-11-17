@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 MODEL = os.getenv("JARVIS_MODEL", "qwen3.5:4b")
-OLLAMA = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+from backend.inference import (PROVIDER, request_spec, extract_message, assistant_message, tool_result_message)
 WORKSPACE = Path(os.getenv("JARVIS_WORKSPACE", str(Path.home() / "HR-Presents" / "HR-JARVIS-NEXT"))).expanduser().resolve()
 DATA_DIR = Path(os.getenv("JARVIS_DATA_DIR", str(Path.home() / ".local/share/hr-jarvis-next"))).expanduser()
 DB = DATA_DIR / "agent_approvals.sqlite3"
@@ -493,13 +493,14 @@ async def agent_chat(request: AgentRequest):
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(180, connect=10)) as client:
             for _ in range(MAX_TOOL_ROUNDS):
-                response = await client.post(f"{OLLAMA}/api/chat", json={"model":MODEL,"messages":messages,"tools":TOOLS,"stream":False,"think":False})
+                url, payload = request_spec(MODEL, messages, TOOLS)
+                response = await client.post(url, json=payload)
                 response.raise_for_status()
-                answer = response.json().get("message", {})
+                answer = extract_message(response.json())
                 calls = answer.get("tool_calls") or []
                 if not calls:
                     return {"response":answer.get("content", ""),"events":events,"model":MODEL}
-                messages.append({"role":"assistant", "content":answer.get("content", ""), "tool_calls":calls})
+                messages.append(assistant_message(answer, calls))
                 for call in calls[:5]:
                     fn = call.get("function", {})
                     name = fn.get("name", "")
@@ -547,7 +548,7 @@ async def agent_chat(request: AgentRequest):
                             "model": MODEL,
                         }
 
-                    messages.append({"role":"tool", "content":json.dumps(result)})
+                    messages.append(tool_result_message(call, json.dumps(result)))
         return {"response":"Tool-call limit reached. Please refine the request.","events":events,"model":MODEL}
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"Local model unavailable: {exc}")
