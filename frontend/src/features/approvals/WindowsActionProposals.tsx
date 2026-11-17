@@ -30,7 +30,8 @@ export function WindowsActionProposals() {
   }
 
   useEffect(() => {
-    void refresh();
+    const initial = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(initial);
   }, []);
 
   return (
@@ -38,7 +39,9 @@ export function WindowsActionProposals() {
       <div className="section-line">
         <div>
           <h3>Windows Actions</h3>
-          <p>Review AI-proposed desktop actions. Execution is not enabled here.</p>
+          <p>
+            Review AI-proposed desktop actions. Execution is not enabled here.
+          </p>
         </div>
         <button type="button" onClick={() => void refresh()} disabled={loading}>
           <RefreshCw size={15} />
@@ -60,7 +63,9 @@ export function WindowsActionProposals() {
         {items.map((item) => (
           <div className="record" key={item.id}>
             <span>
-              {item.action.type === "open_app" ? "Open application" : "Open website"}
+              {item.action.type === "open_app"
+                ? "Open application"
+                : "Open website"}
               {" — "}
               {item.action.target}
             </span>

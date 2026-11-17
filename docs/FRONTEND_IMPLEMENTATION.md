@@ -1,31 +1,37 @@
 # Frontend implementation and verification
 
-## Implemented
+## Delivered
 
-Premium responsive dark workstation, persistent navigation, streaming/non-streaming chat, separate memory history, MediaRecorder voice conversation and audio-file transcription, Piper read-aloud, coding inspection/diagnosis/search, agent-assisted isolated execution requests and tool events, approval details/diffs/actions, snippet-based research and sources, configurable API URL, periodic real service checks, safe basic Markdown, accessible labels, reduced-motion support, error boundary and failure states.
+A minimal, cinematic blue intelligence core with subtle procedural light motion and actual microphone/playback analyser reactivity. One compact menu exposes chat, memory, coding, research, approvals, system status and settings. The main screen contains one microphone control and an optional text composer. Conversation and tool-event history open on demand.
 
-Backend Python files and API contracts were not changed. No fake service status, AI responses, source citations or mock production backend were introduced. The repo's OpenAPI file was inspected; its documented agent interface is used for execution, since the Python implementation's `/api/coding/execute` route is absent from the checked-in specification.
+Agent chat is enabled by default, preserving the latest backend tool integration. Ordinary chat can be selected by disabling agent tools; NDJSON streaming remains available for ordinary chat. Persistent-memory conversations retain their backend IDs and remain separate. Browser voice uses MediaRecorder, multipart transcription, agent response and sequential Piper speech chunks without truncating long answers. Stop, replay, cancellation, deadlines and partial-result errors are handled. Browser wake-word listening is not claimed.
 
-## Verification completed
+Coding inspection, search, diagnosis, agent-driven isolated Python execution requests and tool output use existing APIs. File changes require explicit approval/rejection. Windows proposals remain read-only: the current backend exposes no browser execution/approval route. No operation is reported as executed merely because it was proposed.
 
-- `npm run build`: passes with strict TypeScript.
-- `npm run lint`: passes without warnings after fixes.
-- Browser QA: desktop shell/composer, suggestion prompt, send failure, disconnected service reporting, navigation and settings/research/voice/coding views inspected against the real preview.
-- 25 real-backend checks through FastAPI TestClient, with temporary disposable data: health; voice/memory/coding/research/agent status; conversation and approval lists; inspect; Python diagnosis; code search; diff preview with `applied=false`; approval detail/approve/repeated-approval rejection/reject; memory list/open/delete/missing-ID; empty transcription/converse audio; unavailable Piper; non-streamed model connection failure and structured stream error.
-- No model/service response was mocked. Approval writes only affected a temporary test directory. Memory retrieval/deletion used a disposable database fixture, not a generated model conversation.
+API requests are centralized, typed and configurable through VITE_API_BASE_URL. Transport validates JSON/audio responses, rejects HTML fallbacks and combines cancellation with request deadlines. Research shows backend sources with safe links and preserves snippet evidence labels. Service endpoint reachability is distinct from model/Piper readiness.
 
-## Remaining acceptance checks on the developer laptop
+Backend source matches main at 9c9ea5cab9c4505559fb415f6f172a62fca3ee10. No Python backend or API contracts were changed.
 
-1. Start the existing backend and frontend together using the Vite proxy. Verify actual streamed and non-streamed Ollama replies, cancellation and follow-up context.
-2. Generate a real persistent conversation, reload/open it, continue with its returned ID, then delete a disposable conversation.
-3. Grant microphone permission, record WebM/Ogg speech, verify Whisper transcription, agent reply, Piper audio and replay. Check denied/revoked permission and microphone disconnect cases on the target browser.
-4. Run a known safe Python file via the agent; verify actual Bubblewrap stdout/stderr, runtime-error, syntax-error, timeout and isolation results on the target OS.
-5. Generate a real agent proposal, inspect full content/diff, approve/reject disposable files and verify the actual filesystem result. Confirm workspace configuration matches the intended project; Python diff resolution and agent write resolution must refer to the same checkout.
-6. Verify DDGS search and cited answers with live network access. Backend evidence remains snippets, not independently verified page contents.
-7. Verify target laptop/mobile browser layout and keyboard navigation, then client hardware acceptance.
+## Verification
 
-Full model generation, microphone capture, speech synthesis, live web research and isolated process execution were not verified in this environment: the required local model weights, audio device and Bubblewrap runtime are not available. The managed browser preview also cannot directly connect to a separately sandboxed backend process. API-level checks exercised the real code without a network server.
+- npm run build: strict TypeScript and production Vite build pass.
+- npm run lint: passes without warnings.
+- npm run test: five Node tests pass, covering fragmented Unicode NDJSON, stream errors, source URL safety, real HTTP transport/error/cancellation and complete long-answer speech chunking.
+- python tests/frontend_contracts.py: 26 real FastAPI checks pass using temporary workspace/database fixtures. Checks cover service endpoints, coding inspection/search/diagnosis/diff, approval actions and conflict handling, memory retrieval/deletion, Windows proposal/confirmation behavior, voice validation and invalid requests. No model successes are mocked.
+- Browser checked against actual FastAPI through the development proxy: agent calculator request produces a pending proposal, review accurately states no execution, service status shows backend reachability with model unverified, main screen/navigation/composer work.
 
-## Delivery
+## Local acceptance still required
 
-Source belongs on `frontend-development`, with a pull request targeting `main`. The Sites deployment hosts the static frontend privately; backend services stay on the developer/client machine. This delivery is a frontend implementation, not a Windows executable package or completed local hardware acceptance.
+Real model generation/streaming, microphone hardware, Whisper recognition, Piper audio, live DDGS research and Bubblewrap execution need the local services/models and target hardware. These successes were not fabricated in this environment. The health endpoint currently verifies Ollama, so it cannot establish readiness of alternate inference providers by itself.
+
+The private Sites deployment serves the frontend. The Python backend remains local and must be running/configured. This delivery does not package a Windows executable or enable unsupported Windows automation.
+
+## Run
+
+Install existing dependencies using npm --prefix frontend install. Start the existing Python backend on port 8100 following its README, then npm run dev. Development uses the Vite /api proxy. For a hosted frontend, configure the backend URL in Settings and ensure the backend permits that origin and browser network policy allows access. Never commit local secrets.
+
+## Procedural core update
+
+The image-based core has been replaced by lazily loaded Three.js geometry and shaders: flowing meridians, cross sections, a separately rotating inner lattice, three partial orbital strands and a texture-free nucleus. A perspective-projected Canvas renderer provides animated 3D geometry if WebGL cannot initialize. Listening/speaking use actual time-domain audio samples; processing, approval and error profiles transition smoothly. Reduced motion limits rotation/deformation, hidden tabs pause updates, pixel density/frame rate are capped, and resources are disposed on unmount.
+
+Build, lint and seven frontend tests pass, including silence/real waveform metering and frame-rate-independent state transitions. The managed browser has WebGL disabled; its Canvas fallback was visually inspected. GPU rendering and real audio-reactive movement still require target-device acceptance. No backend changes in this update.
