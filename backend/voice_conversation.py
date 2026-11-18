@@ -78,6 +78,7 @@ def natural_speech_text(text: str) -> str:
 async def converse(
     file: UploadFile = File(...),
     history: str = Form("[]"),
+    conversation_id: str = Form(""),
 ):
     previous = parse_history(history)
 
@@ -91,6 +92,7 @@ async def converse(
         message=message,
         history=previous,
         context=VOICE_INSTRUCTION,
+        conversation_id=conversation_id or None,
     )
 
     result = await agent.agent_chat(request)
@@ -123,6 +125,7 @@ async def converse(
         "response": answer,
         "events": result.get("events", []),
         "model": result.get("model"),
+        "conversation_id": result.get("conversation_id"),
         "spoken_text": spoken_text,
         "audio_format": "wav",
         "audio_base64": base64.b64encode(speech.body).decode("ascii"),

@@ -18,7 +18,7 @@ from backend.coding import (
     search_code, diagnose, inspect as inspect_project_code,
     execute_code,
 )
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -29,7 +29,7 @@ DATA_DIR = Path(os.getenv("JARVIS_DATA_DIR", str(Path.home() / ".local/share/hr-
 DB = DATA_DIR / "agent_approvals.sqlite3"
 MAX_READ = 20000
 MAX_WRITE = 12000
-MAX_TOOL_ROUNDS = 4
+MAX_TOOL_ROUNDS = 8
 
 SYSTEM = ("You are J.A.R.V.I.S. by HR-Presents, powered by local model " + MODEL + ". "
           "You have tools for inspecting files inside a restricted workspace and proposing text-file changes. "
@@ -110,12 +110,33 @@ TOOLS = [
         }
     }},
 
+
+    # JARVIS_CODING_TOOL_V1
+    {"type": "function", "function": {
+        "name": "validate_python",
+        "description": (
+            "Validate proposed Python code statically without "
+            "executing code or modifying files."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source": {
+                    "type": "string",
+                    "description": "Python source code to validate"
+                }
+            },
+            "required": ["source"]
+        }
+    }},
 ]
 
 class AgentRequest(BaseModel):
     message: str = Field(min_length=1, max_length=12000)
     history: list[dict] = Field(default_factory=list, max_length=30)
     context: str = Field(default="", max_length=4000)
+    conversation_id: str | None = Field(default=None, max_length=100)
+
 
 
 def connect():
@@ -201,6 +222,10 @@ def list_windows_proposals():
 
 def run_tool(name: str, args: dict) -> dict:
     try:
+        if name == "validate_python":
+            from backend.autonomous_coding import validate_python_source
+            return validate_python_source(args.get("source"))
+
         if name == "propose_windows_action":
             from urllib.parse import urlparse
 
@@ -277,6 +302,18 @@ def run_tool(name: str, args: dict) -> dict:
                 return {"error":"Target must be a regular file or not exist"}
             if any(part in {'.git', '.venv', 'node_modules', '.backups', '.env'} for part in p.relative_to(WORKSPACE).parts):
                 return {"error":"Protected path"}
+            # JARVIS_PYTHON_WRITE_VALIDATION_V1
+            if p.suffix.lower() == ".py":
+                from backend.autonomous_coding import validate_python_source
+                validation = validate_python_source(content)
+                if not validation.get("valid"):
+                    return {
+                        "status": "validation_failed",
+                        "error": "Proposed Python source failed validation",
+                        "validation": validation,
+                        "files_modified": False,
+                    }
+
             approval_id = str(uuid.uuid4())
             with connect() as con:
                 con.execute("INSERT INTO approvals VALUES (?,?,?,?,?,?)", (approval_id, str(p.relative_to(WORKSPACE)), content, reason[:500], "pending", datetime.now(timezone.utc).isoformat()))
@@ -476,6 +513,27 @@ async def agent_chat(request: AgentRequest):
             "model": MODEL,
         }
 
+    # JARVIS_UNIFIED_MEMORY_V1
+    conversation_id = request.conversation_id or str(uuid.uuid4())
+
+    with connect() as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS agent_conversations (
+                id TEXT PRIMARY KEY,
+                history_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        row = con.execute(
+            "SELECT history_json FROM agent_conversations WHERE id=?",
+            (conversation_id,)
+        ).fetchone()
+
+    stored_history = json.loads(row["history_json"]) if row else []
+    conversation_history = (
+        request.history if request.history else stored_history
+    )
+
     messages = [{"role":"system", "content":SYSTEM}]
 
     # Optional trusted application context, separate from user speech.
@@ -485,11 +543,38 @@ async def agent_chat(request: AgentRequest):
             "content": request.context,
         })
 
-    for m in request.history:
+    for m in conversation_history:
         if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str):
             messages.append({"role":m["role"], "content":m["content"][:12000]})
     messages.append({"role":"user", "content":request.message})
     events = []
+
+    # JARVIS_AUTONOMOUS_EXECUTION_V2
+    def persist_agent_reply(reply_text: str) -> None:
+        updated = (
+            conversation_history
+            + [
+                {"role": "user", "content": request.message},
+                {"role": "assistant", "content": reply_text},
+            ]
+        )[-20:]
+        with connect() as con:
+            con.execute("""
+                INSERT INTO agent_conversations
+                (id, history_json, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    history_json=excluded.history_json,
+                    updated_at=excluded.updated_at
+            """, (
+                conversation_id,
+                json.dumps(updated),
+                datetime.now(timezone.utc).isoformat(),
+            ))
+
+    seen_tool_calls = {}
+    total_tool_calls = 0
+    MAX_TOTAL_TOOL_CALLS = 20
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(180, connect=10)) as client:
             for _ in range(MAX_TOOL_ROUNDS):
@@ -499,7 +584,15 @@ async def agent_chat(request: AgentRequest):
                 answer = extract_message(response.json())
                 calls = answer.get("tool_calls") or []
                 if not calls:
-                    return {"response":answer.get("content", ""),"events":events,"model":MODEL}
+                    reply = answer.get("content", "")
+                    persist_agent_reply(reply)
+
+                    return {
+                        "response": reply,
+                        "events": events,
+                        "model": MODEL,
+                        "conversation_id": conversation_id,
+                    }
                 messages.append(assistant_message(answer, calls))
                 for call in calls[:5]:
                     fn = call.get("function", {})
@@ -509,6 +602,49 @@ async def agent_chat(request: AgentRequest):
                         try: args = json.loads(args)
                         except ValueError: args = {}
                     if not isinstance(args, dict): args = {}
+                    signature = json.dumps(
+                        {"tool": name, "arguments": args},
+                        sort_keys=True,
+                        default=str,
+                    )
+                    seen_tool_calls[signature] = (
+                        seen_tool_calls.get(signature, 0) + 1
+                    )
+
+                    if seen_tool_calls[signature] > 2:
+                        result = {
+                            "error": "Repeated identical tool call blocked",
+                            "status": "loop_detected",
+                        }
+                        events.append({"tool": name, "result": result})
+                        summary = (
+                            "I stopped because the same tool request "
+                            "was repeated without a verified resolution. "
+                            "No additional actions were executed."
+                        )
+                        persist_agent_reply(summary)
+                        return {
+                            "response": summary,
+                            "events": events,
+                            "model": MODEL,
+                            "conversation_id": conversation_id,
+                        }
+
+                    if total_tool_calls >= MAX_TOTAL_TOOL_CALLS:
+                        summary = (
+                            "I reached the execution safety limit. "
+                            "Review the recorded tool results before "
+                            "continuing."
+                        )
+                        persist_agent_reply(summary)
+                        return {
+                            "response": summary,
+                            "events": events,
+                            "model": MODEL,
+                            "conversation_id": conversation_id,
+                        }
+
+                    total_tool_calls += 1
                     result = await dispatch_agent_tool(name, args)
                     events.append({"tool":name, "result":result})
 
@@ -533,23 +669,39 @@ async def agent_chat(request: AgentRequest):
                                     f"No website has been opened yet."
                                 )
 
+                            persist_agent_reply(response)
                             return {
                                 "response": response,
                                 "events": events,
                                 "model": MODEL,
+                                "conversation_id": conversation_id,
                             }
 
+                        summary = (
+                            "I couldn't prepare that Windows action. "
+                            "Nothing was executed. Please review the tool result."
+                        )
+                        persist_agent_reply(summary)
                         return {
-                            "response": (
-                                "I couldn't prepare that Windows action. "
-                                "Nothing was executed. Please review the tool result."
-                            ),
+                            "response": summary,
                             "events": events,
                             "model": MODEL,
+                            "conversation_id": conversation_id,
                         }
 
                     messages.append(tool_result_message(call, json.dumps(result)))
-        return {"response":"Tool-call limit reached. Please refine the request.","events":events,"model":MODEL}
+        summary = (
+            "I reached the maximum number of tool-execution rounds. "
+            "Some tool results may be available, but the overall task "
+            "has not been verified as complete."
+        )
+        persist_agent_reply(summary)
+        return {
+            "response": summary,
+            "events": events,
+            "model": MODEL,
+            "conversation_id": conversation_id,
+        }
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"Local model unavailable: {exc}")
 
@@ -610,3 +762,159 @@ def approve(approval_id: str):
         except (ValueError, OSError) as exc:
             raise HTTPException(400, str(exc))
     return {"id":approval_id,"status":"approved", "path":row["path"]}
+
+# JARVIS_POST_WRITE_VERIFICATION_V1
+_original_approve = approve
+
+def approve(approval_id: str):
+    """Apply an approved proposal and verify Python output."""
+
+    from backend.code_verification import verify_python_file
+
+    with connect() as con:
+        row = con.execute(
+            "SELECT path, content, status FROM approvals WHERE id=?",
+            (approval_id,),
+        ).fetchone()
+
+    result = _original_approve(approval_id)
+
+    if not isinstance(result, dict):
+        return result
+
+    if not row or result.get("status") != "approved":
+        return result
+
+    if not str(row["path"]).lower().endswith(".py"):
+        return result
+
+    try:
+        target = safe_path(row["path"])
+        verification = verify_python_file(
+            str(target),
+            row["content"],
+        )
+    except Exception as exc:
+        verification = {
+            "verified": False,
+            "error": type(exc).__name__,
+        }
+
+    return {
+        **result,
+        "verification": verification,
+    }
+
+
+
+# JARVIS_SECURE_WINDOWS_EXECUTION_V1
+# Local approval only. No model-generated shell commands.
+
+@router.post("/windows/proposals/{proposal_id}/execute")
+def execute_windows_proposal(
+    proposal_id: str,
+    request: Request,
+):
+    import json
+    import os
+    import secrets
+    import subprocess
+    from pathlib import Path
+    from fastapi import HTTPException
+
+    host = request.client.host if request.client else ""
+
+    if host not in ("127.0.0.1", "::1"):
+        raise HTTPException(403, "Local requests only")
+
+    token_file = (
+        Path.home()
+        / ".local/share/hr-jarvis-next/windows-approval-token"
+    )
+
+    if not token_file.is_file():
+        raise HTTPException(503, "Approval token not configured")
+
+    expected_token = token_file.read_text().strip()
+    supplied_token = request.headers.get("X-JARVIS-Approval-Token", "")
+
+    if not expected_token or not secrets.compare_digest(
+        supplied_token, expected_token
+    ):
+        raise HTTPException(403, "Trusted approval required")
+
+    allowed = {
+        "notepad": "notepad.exe",
+        "calculator": "calc.exe",
+        "paint": "mspaint.exe",
+        "file_explorer": "explorer.exe",
+    }
+
+    with connect() as con:
+        con.execute("BEGIN IMMEDIATE")
+
+        row = con.execute(
+            "SELECT action_json, status "
+            "FROM windows_proposals WHERE id=?",
+            (proposal_id,),
+        ).fetchone()
+
+        if row is None:
+            raise HTTPException(404, "Proposal not found")
+
+        action = json.loads(row[0])
+
+        if row[1] != "pending":
+            raise HTTPException(409, "Proposal is not pending")
+
+        if action.get("type") != "open_app":
+            raise HTTPException(400, "Unsupported action type")
+
+        target = str(action.get("target", "")).strip().lower()
+
+        if target not in allowed:
+            raise HTTPException(400, "Application not allowlisted")
+
+        executable = (
+            Path("/mnt/c/Windows/System32")
+            / allowed[target]
+        )
+
+        if not executable.is_file():
+            raise HTTPException(503, "Windows executable unavailable")
+
+        con.execute(
+            "UPDATE windows_proposals "
+            "SET status='executing' WHERE id=?",
+            (proposal_id,),
+        )
+
+    try:
+        subprocess.Popen(
+            [str(executable)],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )
+    except Exception:
+        with connect() as con:
+            con.execute(
+                "UPDATE windows_proposals "
+                "SET status='failed' WHERE id=?",
+                (proposal_id,),
+            )
+        raise HTTPException(500, "Windows launch failed")
+
+    with connect() as con:
+        con.execute(
+            "UPDATE windows_proposals "
+            "SET status='executed' WHERE id=?",
+            (proposal_id,),
+        )
+
+    return {
+        "id": proposal_id,
+        "status": "executed",
+        "action": action,
+    }

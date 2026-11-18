@@ -1,3 +1,4 @@
+import JarvisOrb from "./components/JarvisOrb";
 import { ResearchPage } from "./features/research/ResearchPage";
 import { ApprovalsPage } from "./features/approvals/ApprovalsPage";
 import { StatusPage } from "./features/status/StatusPage";
@@ -19,9 +20,7 @@ import {
   Menu,
   MessageSquare,
   Mic,
-  Plus,
   RefreshCw,
-  Settings,
   ShieldCheck,
   Square,
   Trash2,
@@ -60,6 +59,73 @@ const descriptions: Record<string, string> = {
   "System status": "A live view of your local intelligence stack.",
   Settings: "Make this workstation yours.",
 };
+
+async function jarvisSpeakWithFallback(
+  text: string,
+  playAudio: (url: string) => Promise<unknown>,
+  waitForAudio = false,
+  audioElement?: HTMLAudioElement | null,
+): Promise<void> {
+  try {
+    const blob = await request<Blob>("/api/voice/speak", { text });
+    const url = URL.createObjectURL(blob);
+
+    try {
+      await playAudio(url);
+
+      if (waitForAudio && audioElement && !audioElement.ended && !audioElement.paused) {
+        await new Promise<void>((resolve) => {
+          audioElement.addEventListener("ended", () => resolve(), { once: true });
+          audioElement.addEventListener("error", () => resolve(), { once: true });
+        });
+      }
+    } finally {
+      if (waitForAudio) {
+        URL.revokeObjectURL(url);
+      } else if (audioElement && !audioElement.ended && !audioElement.paused) {
+        const cleanup = () => URL.revokeObjectURL(url);
+        audioElement.addEventListener("ended", cleanup, { once: true });
+        audioElement.addEventListener("error", cleanup, { once: true });
+      } else {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    return;
+  } catch (error) {
+    if (!("speechSynthesis" in window)) throw error;
+  }
+
+  const synth = window.speechSynthesis;
+
+  await new Promise<void>((resolve, reject) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-GB";
+    utterance.rate = 0.94;
+    utterance.pitch = 0.9;
+
+    const voices = synth.getVoices();
+
+    utterance.voice =
+      voices.find(v =>
+        v.lang.toLowerCase().startsWith("en-gb") &&
+        /male|george|ryan|daniel|oliver/i.test(v.name)
+      ) ||
+      voices.find(v =>
+        v.lang.toLowerCase().startsWith("en-gb")
+      ) ||
+      null;
+
+    utterance.onend = () => resolve();
+    utterance.onerror = event => reject(
+      new Error("Browser speech failed: " + event.error)
+    );
+
+    synth.cancel();
+    synth.speak(utterance);
+  });
+}
+
 function App() {
   const [page, setPage] = useState("Assistant"),
     [menu, setMenu] = useState(false),
@@ -200,7 +266,7 @@ function App() {
               : "/api/agent/chat",
           channel === "memory"
             ? { message, conversation_id: memoryId }
-            : { message, history: history.slice(-30), context: path },
+            : { message, history: history.slice(-30), context: path, conversation_id: memoryId },
         );
         if (r.conversation_id) setMemoryId(r.conversation_id);
         setMessages((m) => ({
@@ -306,7 +372,9 @@ function App() {
               message: transcript,
               history: [],
               context: "backend",
+              conversation_id: memoryId,
             });
+            if (response.conversation_id) setMemoryId(response.conversation_id);
             setMessages((m) => ({
               ...m,
               voice: [
@@ -316,28 +384,16 @@ function App() {
               ],
             }));
 
-            const speech = await request<Blob>("/api/voice/speak", {
-              text: response.response
+            await jarvisSpeakWithFallback(
+              response.response
                 .replace(/```[\\s\\S]*?```/g, " Code example omitted. ")
                 .replace(/https?:\/\/\S+/g, " ")
                 .replace(/[`*_#~>|]/g, " ")
                 .slice(0, 2000),
-            });
-            const url = URL.createObjectURL(speech);
-            try {
-              await play(url);
-              await new Promise<void>((resolve) => {
-                const player = audio.current;
-                if (!player || player.ended || player.paused) {
-                  resolve();
-                  return;
-                }
-                player.addEventListener("ended", () => resolve(), { once: true });
-                player.addEventListener("error", () => resolve(), { once: true });
-              });
-            } finally {
-              URL.revokeObjectURL(url);
-            }
+              play,
+              true,
+              audio.current,
+            );
           } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
           } finally {
@@ -417,8 +473,10 @@ function App() {
                 feed.map(({ role, content }) => ({ role, content })).slice(-20),
               ),
             );
+            data.append("conversation_id", memoryId || "");
             try {
               const r = await request<VoiceReply>("/api/voice/converse", data);
+              if (r.conversation_id) setMemoryId(r.conversation_id);
               setMessages((m) => ({
                 ...m,
                 voice: [
@@ -470,86 +528,30 @@ function App() {
     setNotice("New conversation started.");
   };
   return (
-    <div className="shell">
-      <aside className={menu ? "sidebar expanded" : "sidebar"}>
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate("Assistant");
-          }}
-        >
-          <div className="logo-mark">
-            <Command size={23} />
-          </div>
-          <div>
-            <b>J.A.R.V.I.S.</b>
-            <small>BY HR-PRESENTS</small>
-          </div>
-          <span className="version">01</span>
-        </a>
-        <button
-          className="new-chat"
-          onClick={newChat}
-          disabled={busy || recording}
-        >
-          <Plus size={17} /> New conversation <span>↗</span>
-        </button>
-        <div className="nav-label">WORKSPACE</div>
-        <nav>
-          {navigation.map(({ id, icon: Icon }) => (
-            <button
-              disabled={busy || recording}
-              className={page === id ? "nav active" : "nav"}
-              key={id}
-              onClick={() => navigate(id)}
-            >
-              <Icon size={18} />
-              {id}
-              {page === id && <span className="active-dot" />}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <button
-            className={page === "System status" ? "nav active" : "nav"}
-            onClick={() => navigate("System status")}
-          >
-            <Activity size={18} />
-            System status
-            <span className={"dot " + (online ? "green" : "")} />
-          </button>
-          <button
-            className={page === "Settings" ? "nav active" : "nav"}
-            onClick={() => navigate("Settings")}
-          >
-            <Settings size={18} />
-            Settings
-          </button>
-          <div className="local-info">
-            <ShieldCheck size={16} />
-            <div>
-              <strong>Local by design</strong>
-              <small>Your intelligence. Your control.</small>
+    <div className={"shell jarvis-product-ui-v1 " + (page === "Assistant" ? "jarvis-home" : "jarvis-feature")}>
+            {menu && (
+        <div className="jarvis-menu-backdrop" onClick={() => setMenu(false)}>
+          <nav className="jarvis-command-menu" aria-label="J.A.R.V.I.S. navigation" onClick={(e) => e.stopPropagation()}>
+            <div className="jarvis-menu-heading">
+              <span>J.A.R.V.I.S. <small>HR-PRESENTS</small></span>
+              <button type="button" onClick={() => setMenu(false)} aria-label="Close menu">×</button>
             </div>
-          </div>
-          <div className="account">
-            <div className="avatar">HR</div>
-            <div>
-              <strong>HR-Presents</strong>
-              <small>Personal workspace</small>
-            </div>
-            <ChevronDown size={15} />
-          </div>
+            <button type="button" className="jarvis-menu-new" onClick={() => { newChat(); setMenu(false); }} disabled={busy || recording}>+ New conversation</button>
+            {navigation.map(({ id }) => (
+              <button type="button" key={id} className={page === id ? 'jarvis-menu-link selected' : 'jarvis-menu-link'} disabled={busy || recording} onClick={() => { navigate(id); setMenu(false); }}>{id}</button>
+            ))}
+            <div className="jarvis-menu-separator" />
+            <button type="button" className="jarvis-menu-link" onClick={() => { navigate('System status'); setMenu(false); }}>System status</button>
+            <button type="button" className="jarvis-menu-link" onClick={() => { navigate('Settings'); setMenu(false); }}>Settings</button>
+          </nav>
         </div>
-      </aside>
+      )}
       <div className="main">
         <header className="topbar">
           <div className="breadcrumbs">
             <button
-              className="mobile"
-              aria-label="Toggle menu"
+              className="mobile jarvis-menu-trigger"
+              aria-label="Open navigation menu"
               onClick={() => setMenu(!menu)}
             >
               <Menu size={19} />
@@ -809,18 +811,9 @@ function App() {
                       <span className="tiny-line" /> YOUR PERSONAL AI,
                       REIMAGINED
                     </div>
-                    <div
-                      className={
-                        "intelligence-orb " + (recording ? "listening" : "")
-                      }
-                    >
-                      <div className="orb-ring ring-one" />
-                      <div className="orb-ring ring-two" />
-                      <div className="orb-inner">
-                        <AudioLines size={40} strokeWidth={1.2} />
-                      </div>
-                      <span className="orb-spark" />
-                    </div>
+                    <JarvisOrb state={recording ? "listening" : busy ? "thinking" : "idle"} />
+                    {page !== "Voice assistant" && (
+                      <>
                     <div className="welcome-label">
                       J.A.R.V.I.S. <span>IS HERE FOR YOU</span>
                     </div>
@@ -838,40 +831,9 @@ function App() {
                         ? "Think out loud. Explore an idea. Get things done."
                         : descriptions[page]}
                     </p>
-                    {page === "Voice assistant" ? (
-                      <div className="voice-controls">
-                        <button
-                          aria-label={
-                            recording ? "Stop recording" : "Start recording"
-                          }
-                          className={
-                            recording
-                              ? "record-button recording"
-                              : "record-button"
-                          }
-                          disabled={busy}
-                          onClick={() => void toggleRecord()}
-                        >
-                          {recording ? <Square size={22} /> : <Mic size={22} />}
-                        </button>
-                        <span>{voiceState}</span>
-                        <small>
-                          Click to talk · Optional browser hands-free mode
-                        </small>
-                        <button
-                          type="button"
-                          disabled={recording || busy}
-                          onClick={() => {
-                            if (handsFree) stopHandsFree();
-                            else void startHandsFree().catch((err) =>
-                              setError(err instanceof Error ? err.message : String(err))
-                            );
-                          }}
-                        >
-                          {handsFree ? "Disable hands-free" : "Enable hands-free"}
-                        </button>
-                      </div>
-                    ) : (
+                      </>
+                    )}
+                    {page !== "Voice assistant" && (
                       <div className="suggestion-grid">
                         {(page === "Coding assistant"
                           ? [
@@ -958,10 +920,8 @@ function App() {
                               disabled={busy}
                               onClick={() =>
                                 void run(async () => {
-                                  const blob = await request<Blob>(
-                                    "/api/voice/speak",
-                                    {
-                                      text: m.content
+                                  await jarvisSpeakWithFallback(
+                                    m.content
                                         .replace(/```[\s\S]*?```/g, " Code example omitted. ")
                                         .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
                                         .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
@@ -970,20 +930,10 @@ function App() {
                                         .replace(/\s+/g, " ")
                                         .trim()
                                         .slice(0, 2000),
-                                    },
+                                    play,
+                                    false,
+                                    audio.current,
                                   );
-                                  const url = URL.createObjectURL(blob);
-                                  try {
-                                    await play(url);
-                                    audio.current?.addEventListener(
-                                      "ended",
-                                      () => URL.revokeObjectURL(url),
-                                      { once: true },
-                                    );
-                                  } catch (e) {
-                                    URL.revokeObjectURL(url);
-                                    throw e;
-                                  }
                                 })
                               }
                             >
@@ -1004,40 +954,31 @@ function App() {
               </div>
               <div className="composer-area">
                 {page === "Voice assistant" && (
-                  <label className="audio-upload">
-                    Transcribe an audio file
-                    <input
-                      type="file"
-                      accept=".wav,.mp3,.m4a,.flac,.ogg,.webm"
-                      disabled={busy || recording}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        e.target.value = "";
-                        if (!f) return;
-                        void run(async () => {
-                          if (f.size > 15 * 1024 * 1024)
-                            throw new Error(
-                              "Audio exceeds the 15 MB backend limit.",
-                            );
-                          const data = new FormData();
-                          data.append("file", f);
-                          const r = await request<{ text: string }>(
-                            "/api/voice/transcribe",
-                            data,
-                          );
-                          setNotice("Transcription: " + r.text);
-                        });
-                      }}
-                    />
-                  </label>
-                )}
-                {page === "Voice assistant" && feed.length > 0 && (
-                  <div className="voice-inline">
-                    <button disabled={busy} onClick={() => void toggleRecord()}>
-                      {recording ? <Square size={17} /> : <Mic size={17} />}{" "}
-                      {recording ? "Stop recording" : "Start recording"}
+                  <div className="jarvis-voice-minimal">
+                    <button
+                      type="button"
+                      aria-label={recording ? "Stop recording" : "Start recording"}
+                      title={recording ? "Stop recording" : "Speak to JARVIS"}
+                      disabled={busy}
+                      onClick={() => void toggleRecord()}
+                    >
+                      {recording ? <Square size={18} /> : <Mic size={18} />}
                     </button>
-                    <span>{voiceState}</span>
+                    <button
+                      type="button"
+                      aria-label={handsFree ? "Disable hands-free" : "Enable hands-free"}
+                      title={handsFree ? "Disable hands-free" : "Enable hands-free"}
+                      disabled={recording || busy}
+                      onClick={() => {
+                        if (handsFree) stopHandsFree();
+                        else void startHandsFree().catch(err =>
+                          setError(err instanceof Error ? err.message : String(err))
+                        );
+                      }}
+                    >
+                      {handsFree ? "Hands-free on" : "Hands-free"}
+                    </button>
+                    <span aria-live="polite">{voiceState}</span>
                   </div>
                 )}
                 {lastAudio && page === "Voice assistant" && (

@@ -8,6 +8,7 @@ import urllib.request
 from ddgs import DDGS
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from backend.inference import PROVIDER, BASE_URL
 
 router = APIRouter(prefix="/api/research", tags=["research"])
 MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:4b")
@@ -66,10 +67,10 @@ def ask_ollama(query, sources):
         f"URL: {s['url']}\nExcerpt: {s['snippet']}"
         for s in sources
     )
+
     payload = {
         "model": MODEL,
         "stream": False,
-        "think": False,
         "messages": [
             {
                 "role": "system",
@@ -86,14 +87,34 @@ def ask_ollama(query, sources):
             },
         ],
     }
+
+    if PROVIDER == "ollama":
+        endpoint = OLLAMA + "/api/chat"
+        payload["think"] = False
+    else:
+        endpoint = BASE_URL + "/chat/completions"
+        if PROVIDER == "vllm":
+            payload["chat_template_kwargs"] = {
+                "enable_thinking": False
+            }
+
     req = urllib.request.Request(
-        OLLAMA + "/api/chat",
+        endpoint,
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
+
     with urllib.request.urlopen(req, timeout=120) as response:
-        return json.load(response).get("message", {}).get("content", "")
+        data = json.load(response)
+
+    if PROVIDER == "ollama":
+        return data.get("message", {}).get("content", "")
+
+    choices = data.get("choices") or []
+    if not choices:
+        raise ValueError("Inference server returned no choices")
+    return choices[0].get("message", {}).get("content") or ""
 
 @router.post("/answer")
 async def answer(request: ResearchRequest):

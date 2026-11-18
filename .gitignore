@@ -54,3 +54,44 @@ venv/
 node_modules/
 dist/
 build/
+
+# JARVIS local development artifacts
+.jarvis-backups/
+.jarvis-cinematic-backups/
+*.bak
+*.backup-*
+*.autonomy-backup-*
+*.coding-backup-*
+*.route-backup-*
+*.validation-backup-*
+*.verify-backup-*
+*.windows-backup-*
+*.unified-backup-*
+*.before-local-voice*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Frontend
+node_modules/
+dist/
+frontend/dist/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Local AI model artifacts
+*.gguf
+*.safetensors
+*.onnx
+*.pt
+*.pth

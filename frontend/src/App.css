@@ -1199,3 +1199,426 @@ audio {
   margin-left: 0;
   color: #92b5c8;
 }
+
+/* HR-Presents cinematic intelligence core — scoped first-stage enhancement */
+.jarvis-3d { position: relative; width: min(100%, 560px); height: clamp(270px, 43vw, 440px); margin: 0 auto 12px; isolation: isolate; }
+.jarvis-3d canvas { position: relative; z-index: 2; outline: none; }
+.jarvis-3d-aura { position: absolute; inset: 13% 10%; z-index: 0; border-radius: 50%; background: radial-gradient(ellipse, rgba(14,88,145,.20) 0%, rgba(4,23,47,.12) 39%, transparent 72%); filter: blur(23px); pointer-events: none; }
+.jarvis-3d-status { position: absolute; z-index: 3; bottom: 1px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 9px; color: #7fb5d4; font: 500 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .23em; pointer-events: none; }
+.jarvis-3d-status span { width: 5px; height: 5px; border-radius: 50%; background: #65d2ff; box-shadow: 0 0 12px #45b8ff; }
+.jarvis-3d--listening .jarvis-3d-aura { background: radial-gradient(ellipse, rgba(23,143,205,.32), transparent 72%); }
+.jarvis-3d--thinking .jarvis-3d-aura { background: radial-gradient(ellipse, rgba(38,90,195,.32), transparent 72%); }
+.jarvis-3d-fallback { display: grid; place-items: center; height: 100%; color: #76c9fa; letter-spacing: .3em; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .jarvis-3d-aura { filter: none; } }
+
+
+/* JARVIS CINEMATIC V2 */
+/* Scope the cinematic treatment to the empty assistant welcome screen. Other tools retain their UI. */
+.shell:has(.welcome .jarvis-3d) { background: #02060c !important; color: #cce5f4; }
+.shell:has(.welcome .jarvis-3d) .main { background: radial-gradient(ellipse 46% 52% at 53% 41%, rgba(14,49,78,.18), transparent 90%), #02060c !important; min-width: 0; }
+.shell:has(.welcome .jarvis-3d) .sidebar { width: 68px !important; min-width: 68px !important; transition: width .3s ease, min-width .3s ease; overflow: hidden; background: rgba(3,11,20,.9) !important; border-right: 1px solid rgba(92,174,225,.11) !important; z-index: 20; }
+.shell:has(.welcome .jarvis-3d) .sidebar:hover, .shell:has(.welcome .jarvis-3d) .sidebar:focus-within { width: 242px !important; min-width: 242px !important; }
+.shell:has(.welcome .jarvis-3d) .sidebar .brand { white-space: nowrap; }
+.shell:has(.welcome .jarvis-3d) .sidebar .brand > div:not(.logo-mark), .shell:has(.welcome .jarvis-3d) .sidebar .version, .shell:has(.welcome .jarvis-3d) .sidebar .nav-label, .shell:has(.welcome .jarvis-3d) .sidebar .nav:not(.active) .active-dot, .shell:has(.welcome .jarvis-3d) .sidebar .local-info, .shell:has(.welcome .jarvis-3d) .sidebar .account { opacity: 0; transition: opacity .2s; }
+.shell:has(.welcome .jarvis-3d) .sidebar:hover .brand > div:not(.logo-mark), .shell:has(.welcome .jarvis-3d) .sidebar:focus-within .brand > div:not(.logo-mark), .shell:has(.welcome .jarvis-3d) .sidebar:hover .version, .shell:has(.welcome .jarvis-3d) .sidebar:hover .nav-label, .shell:has(.welcome .jarvis-3d) .sidebar:hover .local-info, .shell:has(.welcome .jarvis-3d) .sidebar:hover .account { opacity: 1; }
+.shell:has(.welcome .jarvis-3d) .sidebar .nav { white-space: nowrap; }
+.shell:has(.welcome .jarvis-3d) .sidebar .new-chat { white-space: nowrap; }
+.shell:has(.welcome .jarvis-3d) .topbar { background: transparent !important; border-bottom: 1px solid rgba(110,185,235,.08) !important; }
+.shell:has(.welcome .jarvis-3d) .workspace-head { display: none !important; }
+.shell:has(.welcome .jarvis-3d) .welcome { max-width: 100% !important; padding: 10px 12px 0 !important; margin: 0 auto !important; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; }
+.shell:has(.welcome .jarvis-3d) .welcome-top { font-size: 9px !important; letter-spacing: .32em !important; color: #6c9ebd !important; }
+.shell:has(.welcome .jarvis-3d) .welcome-label { margin-top: -12px !important; font-size: 10px !important; letter-spacing: .38em !important; color: #88c8ef !important; }
+.shell:has(.welcome .jarvis-3d) .welcome h2 { font-size: clamp(17px,2vw,23px) !important; font-weight: 300 !important; letter-spacing: .035em !important; margin: 9px 0 0 !important; color: #d6e9f6 !important; }
+.shell:has(.welcome .jarvis-3d) .welcome p { font-size: 12px !important; color: #6688a1 !important; margin: 7px 0 0 !important; }
+.shell:has(.welcome .jarvis-3d) .suggestion-grid { display: none !important; }
+.shell:has(.welcome .jarvis-3d) .jarvis-3d { width: min(100%, 690px) !important; height: clamp(310px, 50vh, 570px) !important; margin: -10px auto 0 !important; position: relative; isolation: isolate; }
+.shell:has(.welcome .jarvis-3d) .jarvis-3d-aura { inset: 8% 12% !important; background: radial-gradient(ellipse, rgba(26,97,151,.16), rgba(7,35,63,.06) 40%, transparent 73%) !important; filter: blur(32px) !important; }
+.shell:has(.welcome .jarvis-3d) .jarvis-3d-status { bottom: 3% !important; font-size: 9px !important; letter-spacing: .31em !important; color: #5f9ec3 !important; }
+.shell:has(.welcome .jarvis-3d) .conversation { border: none !important; background: transparent !important; box-shadow: none !important; }
+.shell:has(.welcome .jarvis-3d) .composer-area { max-width: 720px !important; margin: 0 auto !important; width: 100%; }
+.shell:has(.welcome .jarvis-3d) .composer { background: rgba(5,17,29,.86) !important; border: 1px solid rgba(91,169,220,.21) !important; border-radius: 16px !important; box-shadow: 0 0 50px rgba(14,80,126,.08) !important; }
+.shell:has(.welcome .jarvis-3d) .composer textarea { color: #e3f3ff !important; }
+.shell:has(.welcome .jarvis-3d) footer { background: transparent !important; border-top: 1px solid rgba(110,185,235,.07) !important; }
+@media(max-width: 700px) { .shell:has(.welcome .jarvis-3d) .sidebar { width: 0 !important; min-width: 0 !important; } .shell:has(.welcome .jarvis-3d) .jarvis-3d { height: 43vh !important; } }
+@media(prefers-reduced-motion: reduce) { .shell:has(.welcome .jarvis-3d) .sidebar { transition: none; } }
+
+
+/* JARVIS PREMIUM WORKSPACE V3 */
+/* Design system: muted cyan, restrained contrast, and functional minimalism. */
+:root { color-scheme: dark; }
+.shell {
+  --jarvis-bg: #03070d;
+  --jarvis-panel: #07111c;
+  --jarvis-panel-hover: #0b1a29;
+  --jarvis-line: rgba(125,190,230,.115);
+  --jarvis-line-strong: rgba(125,190,230,.23);
+  --jarvis-text: #dcebf5;
+  --jarvis-muted: #7e9bb0;
+  --jarvis-accent: #76c5f4;
+  background: var(--jarvis-bg) !important;
+  color: var(--jarvis-text) !important;
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif !important;
+}
+.shell * { box-sizing: border-box; }
+.shell button, .shell input, .shell textarea, .shell select { font: inherit; }
+.shell button { transition: background .22s ease, color .22s ease, border-color .22s ease, opacity .22s ease, transform .22s ease; }
+.shell button:focus-visible, .shell a:focus-visible, .shell textarea:focus-visible, .shell input:focus-visible, .shell select:focus-visible {
+  outline: 2px solid rgba(116,198,245,.85) !important;
+  outline-offset: 3px;
+}
+.shell .main {
+  background: radial-gradient(ellipse 58% 45% at 54% 20%,rgba(13,44,70,.12),transparent 82%),#03070d !important;
+  min-width: 0;
+}
+/* Quiet rail: full labels remain accessible on hover and keyboard focus. */
+.shell .sidebar {
+  width: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+  overflow: hidden !important;
+  background: linear-gradient(180deg,#07111b 0%,#040b13 100%) !important;
+  border-right: 1px solid var(--jarvis-line) !important;
+  box-shadow: none !important;
+  z-index: 50;
+  transition: width .3s ease,min-width .3s ease,max-width .3s ease !important;
+}
+.shell .sidebar:hover, .shell .sidebar:focus-within, .shell .sidebar.expanded {
+  width: 250px !important;
+  min-width: 250px !important;
+  max-width: 250px !important;
+  box-shadow: 18px 0 60px rgba(0,0,0,.34) !important;
+}
+.shell .sidebar .brand { min-width: 230px; white-space: nowrap; border-bottom: 1px solid var(--jarvis-line) !important; }
+.shell .sidebar .logo-mark {
+  flex: 0 0 auto; border: 1px solid rgba(106,194,243,.26) !important;
+  background: radial-gradient(circle,rgba(43,135,189,.19),rgba(5,19,33,.42)) !important;
+  color: #9edcff !important; border-radius: 12px !important;
+}
+.shell .sidebar .brand b { letter-spacing: .22em !important; font-size: 12px !important; color: #e0f3ff !important; }
+.shell .sidebar .brand small, .shell .sidebar .version { color: #63859e !important; font-size: 9px !important; letter-spacing: .17em !important; }
+.shell .sidebar .nav-label { font-size: 9px !important; letter-spacing: .23em !important; color: #5e8198 !important; }
+.shell .sidebar nav { overflow: visible !important; }
+.shell .sidebar .nav {
+  min-width: 224px; white-space: nowrap; border-radius: 10px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important; color: #88a6ba !important;
+  font-size: 12px !important; font-weight: 450 !important; letter-spacing: .015em !important;
+}
+.shell .sidebar .nav svg { flex: 0 0 auto; color: #80a9c4 !important; stroke-width: 1.65 !important; }
+.shell .sidebar .nav:hover { background: rgba(63,126,164,.1) !important; color: #e5f3ff !important; }
+.shell .sidebar .nav.active {
+  background: linear-gradient(90deg,rgba(45,127,183,.2),rgba(36,99,143,.035)) !important;
+  border-color: rgba(106,190,242,.14) !important;
+  color: #dff3ff !important;
+}
+.shell .sidebar .nav.active svg { color: #8bd5ff !important; }
+.shell .sidebar .new-chat {
+  min-width: 224px; white-space: nowrap; border: 1px solid rgba(117,185,228,.19) !important;
+  background: rgba(28,75,106,.11) !important; color: #b6d8ed !important;
+  border-radius: 11px !important; font-size: 12px !important;
+}
+.shell .sidebar .new-chat:hover { background: rgba(43,113,159,.2) !important; }
+.shell .sidebar .local-info, .shell .sidebar .account { min-width: 225px; border-color: var(--jarvis-line) !important; }
+.shell .sidebar .local-info strong, .shell .sidebar .account strong { color: #b9d8ec !important; }
+.shell .sidebar .local-info small, .shell .sidebar .account small { color: #6e8da3 !important; }
+/* Remove V2 welcome-only rail sizing so the rail works on every page. */
+.shell:has(.welcome .jarvis-3d) .sidebar { width: 72px !important; min-width: 72px !important; max-width: 72px !important; }
+.shell:has(.welcome .jarvis-3d) .sidebar:hover, .shell:has(.welcome .jarvis-3d) .sidebar:focus-within,
+.shell:has(.welcome .jarvis-3d) .sidebar.expanded { width: 250px !important; min-width: 250px !important; max-width: 250px !important; }
+.shell:has(.welcome .jarvis-3d) .sidebar .brand > div:not(.logo-mark),
+.shell:has(.welcome .jarvis-3d) .sidebar .version,
+.shell:has(.welcome .jarvis-3d) .sidebar .nav-label,
+.shell:has(.welcome .jarvis-3d) .sidebar .local-info,
+.shell:has(.welcome .jarvis-3d) .sidebar .account { opacity: 1 !important; }
+/* Header becomes a quiet instrument bar. */
+.shell .topbar {
+  min-height: 60px !important; background: rgba(3,9,16,.78) !important;
+  border-bottom: 1px solid var(--jarvis-line) !important;
+  box-shadow: none !important; backdrop-filter: blur(16px);
+}
+.shell .breadcrumbs { color: #6689a1 !important; font-size: 11px !important; letter-spacing: .08em !important; }
+.shell .breadcrumbs strong { color: #b6d5e9 !important; font-weight: 500 !important; }
+.shell .top-actions { gap: 15px !important; }
+.shell .local-tag, .shell .connection, .shell .model-pill {
+  border: 1px solid rgba(111,181,225,.12) !important;
+  background: rgba(11,30,46,.35) !important; color: #7eabc7 !important;
+  border-radius: 999px !important; box-shadow: none !important;
+  font-size: 10px !important; letter-spacing: .065em !important;
+}
+.shell .workspace-head { border-color: var(--jarvis-line) !important; }
+.shell .workspace-head .eyebrow { color: #6692af !important; font-size: 10px !important; letter-spacing: .18em !important; }
+.shell .workspace-head h1 { color: #e1eff8 !important; font-size: clamp(23px,2.7vw,35px) !important; font-weight: 350 !important; letter-spacing: -.025em !important; }
+/* One visual language for tool pages, output panels, and conversation. */
+.shell main { color: var(--jarvis-text); }
+.shell .conversation, .shell .message-list {
+  background: transparent !important; box-shadow: none !important;
+  border-color: var(--jarvis-line) !important;
+}
+.shell .message { border-color: rgba(116,181,222,.1) !important; }
+.shell .message-avatar {
+  border: 1px solid rgba(108,183,228,.16) !important;
+  background: rgba(19,57,84,.27) !important;
+  color: #94cdef !important; border-radius: 11px !important;
+}
+.shell .message-meta { color: #b3d5ea !important; letter-spacing: .08em !important; }
+.shell .message-meta span { color: #628aa4 !important; }
+.shell .message-content { color: #c4d9e7 !important; }
+.shell .composer-area { max-width: 880px; }
+.shell .composer {
+  background: rgba(8,22,35,.82) !important;
+  border: 1px solid rgba(113,180,225,.19) !important;
+  border-radius: 15px !important;
+  box-shadow: 0 18px 60px rgba(0,0,0,.16) !important;
+}
+.shell .composer:focus-within { border-color: rgba(127,204,248,.47) !important; box-shadow: 0 0 0 3px rgba(58,145,205,.07) !important; }
+.shell .composer textarea { color: #d9ecf9 !important; background: transparent !important; font-size: 13px !important; }
+.shell .composer textarea::placeholder { color: #64859b !important; }
+.shell .composer-controls { color: #6e94ae !important; }
+.shell .composer .send { background: #2a739e !important; border: 1px solid rgba(147,213,251,.24) !important; color: #ecf8ff !important; border-radius: 10px !important; }
+.shell .composer .send:hover:not(:disabled) { background: #368cbf !important; transform: translateY(-1px); }
+.shell .composer-note, .shell .muted, .shell .processing { color: #66889e !important; }
+.shell .alert, .shell .notice { border-radius: 12px !important; background: rgba(13,31,45,.84) !important; border: 1px solid rgba(111,180,221,.17) !important; box-shadow: none !important; }
+.shell .coding-tools, .shell .memory-bar, .shell .voice-controls, .shell .voice-inline {
+  background: rgba(8,20,32,.65) !important; border: 1px solid var(--jarvis-line) !important;
+  border-radius: 14px !important; box-shadow: none !important;
+}
+.shell input:not([type='checkbox']):not([type='radio']),
+.shell select, .shell textarea {
+  background-color: rgba(5,15,26,.76); color: #d5e8f6;
+  border-color: rgba(110,177,219,.18); border-radius: 10px;
+}
+.shell details { border-color: var(--jarvis-line) !important; }
+.shell summary { color: #94bdd7 !important; }
+.shell footer { background: rgba(3,9,16,.7) !important; border-top: 1px solid var(--jarvis-line) !important; color: #6e91a8 !important; font-size: 10px !important; letter-spacing: .07em !important; }
+.shell .icon { color: #89afc7 !important; }
+.shell .icon:hover { color: #d7efff !important; background: rgba(48,115,159,.11) !important; }
+.shell .dot.green { background: #6bc6ae !important; box-shadow: 0 0 12px rgba(92,207,175,.3) !important; }
+/* Keep the welcome orb and its cinematic proportions from V2. */
+.shell:has(.welcome .jarvis-3d) .main { background: radial-gradient(ellipse 45% 48% at 53% 42%,rgba(14,49,78,.18),transparent 90%),#03070d !important; }
+@media (max-width: 700px) {
+  .shell .sidebar:not(.expanded) { width: 0 !important; min-width: 0 !important; max-width: 0 !important; }
+  .shell .sidebar.expanded { width: min(250px,82vw) !important; min-width: min(250px,82vw) !important; max-width: min(250px,82vw) !important; }
+  .shell:has(.welcome .jarvis-3d) .sidebar:not(.expanded) { width: 0 !important; min-width: 0 !important; max-width: 0 !important; }
+  .shell .local-tag { display: none !important; }
+  .shell .topbar { min-height: 54px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell .sidebar, .shell button { transition: none !important; }
+}
+
+
+/* jarvis-fullscreen-v4 */
+.shell {
+  display: block !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+}
+
+.shell > .main {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  grid-column: 1 / -1 !important;
+}
+
+.shell .topbar .mobile {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  visibility: visible !important;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(100, 190, 235, .16);
+  border-radius: 10px;
+  background: rgba(7, 22, 34, .7);
+  color: #9acbe2;
+  cursor: pointer;
+}
+
+.shell > .sidebar {
+  position: fixed !important;
+  z-index: 1000 !important;
+  top: 16px !important;
+  left: 16px !important;
+  bottom: 16px !important;
+  width: 252px !important;
+  height: auto !important;
+  max-height: calc(100vh - 32px) !important;
+  transform: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: rgba(5, 14, 24, .97) !important;
+  border: 1px solid rgba(102, 195, 235, .18) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .65) !important;
+  backdrop-filter: blur(24px);
+}
+
+.shell > .sidebar .nav,
+.shell > .sidebar .brand,
+.shell > .sidebar .new-chat {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.shell > .sidebar .nav-label,
+.shell > .sidebar .nav,
+.shell > .sidebar .brand,
+.shell > .sidebar .new-chat {
+  white-space: normal !important;
+}
+
+.shell .conversation,
+.shell .composer-area {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+@media (max-width: 700px) {
+  .shell > .sidebar {
+    width: min(280px, calc(100vw - 32px)) !important;
+  }
+}
+
+
+/* jarvis-product-ui-v1: full-screen conversational product experience */
+.shell.jarvis-product-ui-v1 {
+  display: block !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  background: radial-gradient(ellipse 48% 45% at 50% 39%, rgba(12, 42, 66, .15), transparent 80%), #02070d !important;
+}
+.jarvis-product-ui-v1 > .main {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  grid-column: 1 / -1 !important;
+  min-height: 100vh !important;
+}
+.jarvis-product-ui-v1 .topbar {
+  position: relative !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  min-height: 64px !important;
+  padding: 0 clamp(18px, 4vw, 64px) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.jarvis-product-ui-v1 .topbar .breadcrumbs > span,
+.jarvis-product-ui-v1 .topbar .breadcrumbs > strong,
+.jarvis-product-ui-v1 .topbar .slash,
+.jarvis-product-ui-v1 .topbar .local-tag { display: none !important; }
+.jarvis-product-ui-v1 .topbar .mobile.jarvis-menu-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #b0d9ea !important;
+  background: rgba(8, 23, 35, .55) !important;
+  border: 1px solid rgba(117, 198, 236, .16) !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+}
+.jarvis-product-ui-v1 .topbar .connection { font-size: 11px !important; letter-spacing: .045em; opacity: .72; }
+.jarvis-product-ui-v1 main { flex: 1 !important; width: 100% !important; min-width: 0 !important; }
+.jarvis-product-ui-v1.jarvis-home .workspace-head { display: none !important; }
+.jarvis-product-ui-v1.jarvis-home .welcome-top,
+.jarvis-product-ui-v1.jarvis-home .welcome-label,
+.jarvis-product-ui-v1.jarvis-home .welcome > h2,
+.jarvis-product-ui-v1.jarvis-home .welcome > p,
+.jarvis-product-ui-v1.jarvis-home .suggestion-grid { display: none !important; }
+.jarvis-product-ui-v1.jarvis-home .conversation {
+  width: 100% !important;
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.jarvis-product-ui-v1.jarvis-home .welcome {
+  min-height: min(58vh, 580px) !important;
+  padding: 12px 16px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+}
+.jarvis-product-ui-v1.jarvis-home .intelligence-orb,
+.jarvis-product-ui-v1.jarvis-home .jarvis-orb,
+.jarvis-product-ui-v1.jarvis-home canvas { max-width: 100% !important; }
+.jarvis-product-ui-v1.jarvis-home .composer-area {
+  width: min(790px, calc(100% - 32px)) !important;
+  max-width: 790px !important;
+  margin: 0 auto 32px !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+.jarvis-product-ui-v1.jarvis-home .composer {
+  border-radius: 22px !important;
+  background: rgba(5, 18, 29, .82) !important;
+  border: 1px solid rgba(110, 197, 238, .2) !important;
+  box-shadow: 0 16px 70px rgba(0, 0, 0, .28), inset 0 1px rgba(210, 243, 255, .025) !important;
+  backdrop-filter: blur(22px);
+}
+.jarvis-product-ui-v1.jarvis-home .composer textarea { min-height: 44px !important; color: #d9eef9 !important; }
+.jarvis-product-ui-v1.jarvis-home .composer-note { opacity: .45; font-size: 10px; }
+.jarvis-product-ui-v1.jarvis-home footer { display: none !important; }
+.jarvis-menu-backdrop {
+  position: fixed !important;
+  z-index: 5000 !important;
+  inset: 0 !important;
+  background: rgba(0, 4, 9, .42) !important;
+  backdrop-filter: blur(7px) !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  padding: 70px 0 0 clamp(16px, 4vw, 64px) !important;
+}
+.jarvis-command-menu {
+  width: min(290px, calc(100vw - 32px)) !important;
+  max-height: calc(100vh - 88px) !important;
+  overflow-y: auto !important;
+  padding: 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  border-radius: 18px !important;
+  background: #07121e !important;
+  border: 1px solid rgba(113, 192, 231, .22) !important;
+  box-shadow: 0 24px 90px rgba(0,0,0,.65) !important;
+}
+.jarvis-menu-heading { display: flex; align-items: center; justify-content: space-between; color: #e6f5fc; font-size: 12px; letter-spacing: .2em; font-weight: 650; padding: 4px 5px 18px; }
+.jarvis-menu-heading small { display: block; color: #77a2b9; font-size: 9px; letter-spacing: .16em; margin-top: 5px; }
+.jarvis-menu-heading button { color: #c6e8f8; background: transparent; border: 0; cursor: pointer; font-size: 24px; }
+.jarvis-command-menu .jarvis-menu-new,
+.jarvis-command-menu .jarvis-menu-link {
+  width: 100%; min-height: 42px; text-align: left; padding: 10px 13px; border-radius: 10px;
+  color: #a8c6d8; border: 1px solid transparent; background: transparent;
+  font: inherit; font-size: 12px; cursor: pointer; transition: background .15s, color .15s;
+}
+.jarvis-command-menu .jarvis-menu-new { margin-bottom: 9px; border-color: rgba(120, 195, 230, .16); color: #d3e9f5; }
+.jarvis-command-menu .jarvis-menu-link:hover,
+.jarvis-command-menu .jarvis-menu-new:hover,
+.jarvis-command-menu .jarvis-menu-link.selected { background: rgba(36, 112, 151, .18); color: #e1f6ff; }
+.jarvis-menu-separator { height: 1px; background: rgba(125, 192, 222, .12); margin: 9px 3px; }
+@media (max-width: 650px) {
+  .jarvis-product-ui-v1 .topbar { padding: 0 16px !important; }
+  .jarvis-product-ui-v1.jarvis-home .welcome { min-height: 48vh !important; }
+  .jarvis-product-ui-v1.jarvis-home .composer-area { margin-bottom: 16px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jarvis-product-ui-v1 *, .jarvis-command-menu * { transition-duration: .01ms !important; }
+}

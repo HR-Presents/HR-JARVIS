@@ -7,6 +7,28 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from backend.inference import PROVIDER, BASE_URL, OLLAMA_URL
+
+def llm_endpoint():
+    if PROVIDER == "ollama":
+        return OLLAMA_URL + "/api/chat"
+    return BASE_URL + "/chat/completions"
+
+def llm_payload(messages, stream=False):
+    payload = {
+        "model": MODEL,
+        "messages": messages,
+        "stream": stream,
+    }
+    if PROVIDER == "ollama":
+        payload["think"] = False
+    elif PROVIDER == "vllm":
+        payload["chat_template_kwargs"] = {
+            "enable_thinking": False
+        }
+    return payload
+
+
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 MODEL = os.getenv("JARVIS_MODEL", "qwen3.5:4b")
 
@@ -63,52 +85,61 @@ def build_messages(request: ChatRequest):
 
 @app.get("/api/health")
 async def health():
+    endpoint = (
+        OLLAMA_URL + "/api/tags"
+        if PROVIDER == "ollama"
+        else BASE_URL + "/models"
+    )
     try:
-        response = await app.state.http.get(
-            f"{OLLAMA_URL}/api/tags",
-            timeout=5.0,
-        )
+        response = await app.state.http.get(endpoint, timeout=10.0)
         response.raise_for_status()
-        models = response.json().get("models", [])
-        installed = [
-            m.get("name", "") for m in models
-        ]
-        return {
-            "assistant": "J.A.R.V.I.S.",
-            "developer": "HR-Presents",
-            "backend": "online",
-            "ollama": "online",
-            "model": MODEL,
-            "model_installed": MODEL in installed,
-        }
+        data = response.json()
+        installed = (
+            [m.get("name", "") for m in data.get("models", [])]
+            if PROVIDER == "ollama"
+            else [m.get("id", "") for m in data.get("data", [])]
+        )
+        online = True
     except (httpx.HTTPError, ValueError):
-        return {
-            "assistant": "J.A.R.V.I.S.",
-            "backend": "online",
-            "ollama": "offline",
-            "model": MODEL,
-        }
+        installed = []
+        online = False
+
+    return {
+        "assistant": "J.A.R.V.I.S.",
+        "developer": "HR-Presents",
+        "backend": "online",
+        "provider": PROVIDER,
+        "ollama": "online" if online else "offline"
+                  if PROVIDER == "ollama" else "not_selected",
+        "inference": "online" if online else "offline",
+        "model": MODEL,
+        "model_installed": MODEL in installed,
+    }
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     try:
         response = await app.state.http.post(
-            f"{OLLAMA_URL}/api/chat",
-            json={
-                "model": MODEL,
-                "messages": build_messages(request),
-                "stream": False,
-                "think": False,
-            },
+            llm_endpoint(),
+            json=llm_payload(build_messages(request)),
         )
         response.raise_for_status()
         data = response.json()
+
+        if PROVIDER == "ollama":
+            content = data.get("message", {}).get("content", "")
+        else:
+            choices = data.get("choices") or []
+            if not choices:
+                raise ValueError("No model response choices")
+            content = choices[0].get("message", {}).get("content") or ""
+
         return {
             "assistant": "J.A.R.V.I.S.",
             "model": MODEL,
-            "response": data.get("message", {}).get("content", ""),
+            "response": content,
         }
-    except httpx.HTTPError as exc:
+    except (httpx.HTTPError, ValueError, KeyError) as exc:
         raise HTTPException(
             status_code=502,
             detail=f"Local AI connection failed: {exc}",
@@ -117,34 +148,59 @@ async def chat(request: ChatRequest):
 @app.post("/api/chat/stream")
 async def chat_stream(request: ChatRequest):
     async def generate():
+        completed = False
         try:
             async with app.state.http.stream(
                 "POST",
-                f"{OLLAMA_URL}/api/chat",
-                json={
-                    "model": MODEL,
-                    "messages": build_messages(request),
-                    "stream": True,
-                    "think": False,
-                },
+                llm_endpoint(),
+                json=llm_payload(build_messages(request), stream=True),
             ) as response:
                 response.raise_for_status()
+
                 async for line in response.aiter_lines():
                     if not line:
                         continue
-                    data = json.loads(line)
-                    content = data.get("message", {}).get("content", "")
+
+                    if PROVIDER == "ollama":
+                        data = json.loads(line)
+                        content = data.get("message", {}).get("content", "")
+                        completed = bool(data.get("done"))
+                    else:
+                        if not line.startswith("data:"):
+                            continue
+                        raw = line[5:].strip()
+                        if raw == "[DONE]":
+                            completed = True
+                            break
+                        data = json.loads(raw)
+                        choices = data.get("choices") or []
+                        if not choices:
+                            continue
+                        choice = choices[0]
+                        content = (
+                            choice.get("delta", {}).get("content") or ""
+                        )
+                        if choice.get("finish_reason") is not None:
+                            completed = True
+
                     if content:
                         yield json.dumps({
                             "type": "token",
                             "content": content,
                         }) + "\n"
-                    if data.get("done"):
-                        yield json.dumps({
-                            "type": "done",
-                            "model": MODEL,
-                        }) + "\n"
-        except (httpx.HTTPError, ValueError) as exc:
+
+            if completed:
+                yield json.dumps({
+                    "type": "done",
+                    "model": MODEL,
+                }) + "\n"
+            else:
+                yield json.dumps({
+                    "type": "error",
+                    "message": "Model stream ended unexpectedly",
+                }) + "\n"
+
+        except (httpx.HTTPError, ValueError, KeyError) as exc:
             yield json.dumps({
                 "type": "error",
                 "message": str(exc),

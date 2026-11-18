@@ -38,9 +38,15 @@ def request_spec(model, messages, tools):
         {
             "model": model,
             "messages": messages,
-            "tools": tools,
-            "tool_choice": "auto",
+            # Prototype mode: vLLM was launched without automatic tool calling.
+            # Preserve agent tool definitions for future integration.
+            **({"tools": tools, "tool_choice": "auto"}
+               if PROVIDER != "vllm" else {}),
             "stream": False,
+            **(
+                {"chat_template_kwargs": {"enable_thinking": False}}
+                if PROVIDER == "vllm" else {}
+            ),
         },
     )
 

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>J.A.R.V.I.S. — Obsidian Concept</title><style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Space+Grotesk:wght@300;400;500&display=swap');
+:root{color-scheme:dark;--ink:#03060a;--line:rgba(152,191,220,.15);--muted:#657789;--text:#d9e7f0}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);font-family:'DM Sans',Arial,sans-serif;color:var(--text)}button,input{font:inherit}button{cursor:pointer}#scene{position:fixed;inset:0;width:100%;height:100%;display:block}body:before{content:"";pointer-events:none;position:fixed;inset:0;z-index:2;background:radial-gradient(ellipse 50% 50% at 50% 47%,transparent 15%,rgba(1,4,8,.13) 65%,rgba(1,4,8,.66) 100%)}.grain{position:fixed;inset:0;z-index:3;opacity:.075;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E")}.chrome{position:fixed;z-index:5;inset:0;pointer-events:none}.chrome>*{pointer-events:auto}.top{position:absolute;top:39px;left:5.3%;right:5.3%;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;gap:14px;align-items:center}.mark{width:22px;height:22px;position:relative;border:1px solid #6b9fbe;transform:rotate(45deg);opacity:.8}.mark:before{content:"";position:absolute;inset:5px;border:1px solid #7cc2e3}.wordmark{font-family:'Space Grotesk',sans-serif;letter-spacing:.31em;font-size:12px;font-weight:500}.top-right{display:flex;align-items:center;gap:30px}.status{font-size:10px;letter-spacing:.18em;color:#8197a8;display:flex;align-items:center;gap:10px}.dot{width:5px;height:5px;background:#6ea8be;border-radius:50%;box-shadow:0 0 12px #4787a9}.icon-btn{background:transparent;border:0;color:#8397a8;padding:9px;display:grid;place-items:center;transition:color .2s}.icon-btn:hover{color:#e7f6ff}.icon-btn svg{width:18px;height:18px;stroke-width:1.4}.side-label{position:absolute;top:50%;left:5.3%;transform:translateY(-50%);writing-mode:vertical-rl;rotate:180deg;font-size:9px;letter-spacing:.32em;color:#3d5366}.hero-caption{position:absolute;left:50%;top:calc(50% + min(23vw,235px));transform:translateX(-50%);text-align:center;white-space:nowrap}.hero-caption .eyebrow{font-size:9px;letter-spacing:.42em;color:#54758d;margin-bottom:15px}.hero-caption h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(16px,1.7vw,24px);font-weight:300;letter-spacing:.025em;margin:0;color:#d5e7f2}.hero-caption .sub{font-size:11px;letter-spacing:.08em;color:#607689;margin-top:13px}.composer{position:absolute;left:50%;bottom:42px;transform:translateX(-50%);width:min(580px,calc(100% - 40px));height:60px;display:flex;align-items:center;padding:0 12px 0 23px;border:1px solid rgba(143,189,217,.21);background:rgba(6,12,19,.74);backdrop-filter:blur(18px);box-shadow:0 20px 60px rgba(0,0,0,.28)}.composer:focus-within{border-color:rgba(115,194,232,.48)}.composer input{background:none;border:0;outline:0;color:#d9e8f0;flex:1;min-width:0;font-size:12px;letter-spacing:.02em}.composer input::placeholder{color:#5d7384}.send{width:35px;height:35px;border:0;background:transparent;color:#6e8ea4;display:grid;place-items:center}.send:hover{color:#c8f1ff}.send svg{width:18px}.mic{width:38px;height:38px;border:1px solid rgba(128,179,208,.25);background:rgba(52,104,136,.1);color:#8dbed7;display:grid;place-items:center;transition:.2s}.mic:hover,.mic.active{border-color:#70c7e9;color:#e0f9ff;background:rgba(47,126,165,.25)}.mic svg{width:16px}.bottom-left{position:absolute;bottom:59px;left:5.3%;font-size:9px;letter-spacing:.16em;color:#486176}.bottom-right{position:absolute;bottom:59px;right:5.3%;font-size:9px;letter-spacing:.15em;color:#486176}.conversation{position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(540px,calc(100% - 48px));max-height:24vh;overflow:auto;scrollbar-width:thin;display:none;gap:10px;flex-direction:column;mask-image:linear-gradient(transparent,#000 20%)}.conversation.visible{display:flex}.message{font-size:12px;line-height:1.7;padding:11px 14px;background:rgba(4,14,22,.73);border-left:1px solid #47748d;color:#b4c8d7;backdrop-filter:blur(10px)}.message.user{align-self:flex-end;border-left:0;border-right:1px solid #7ca8be;color:#d6e6ee}.settings{position:absolute;top:82px;right:5.3%;width:260px;padding:24px;background:rgba(6,13,20,.95);border:1px solid var(--line);backdrop-filter:blur(22px);display:none}.settings.open{display:block}.settings h2{font-size:11px;font-weight:500;letter-spacing:.2em;margin:0 0 21px}.settings label{display:flex;justify-content:space-between;font-size:11px;color:#8ba1b1;margin:17px 0}.settings input{accent-color:#6cbedf}.settings small{font-size:10px;line-height:1.6;color:#587084;display:block;margin-top:18px}.corner{position:fixed;z-index:4;width:22px;height:22px;border-color:#263d4d;pointer-events:none}.tl{top:21px;left:21px;border-top:1px solid;border-left:1px solid}.tr{top:21px;right:21px;border-top:1px solid;border-right:1px solid}.bl{bottom:21px;left:21px;border-bottom:1px solid;border-left:1px solid}.br{bottom:21px;right:21px;border-bottom:1px solid;border-right:1px solid}@media(max-width:700px){.top{top:30px;left:28px;right:28px}.top-right{gap:12px}.status{font-size:0}.dot{width:6px;height:6px}.side-label,.bottom-left,.bottom-right{display:none}.hero-caption{top:calc(50% + 155px)}.composer{bottom:34px}.conversation{top:17%;max-height:18vh}.corner{display:none}}
+</style></head><body><canvas id="scene" aria-label="Animated filament intelligence core"></canvas><div class="grain"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div class="chrome"><header class="top"><div class="brand"><span class="mark"></span><span class="wordmark">J.A.R.V.I.S.</span></div><div class="top-right"><div class="status"><span class="dot" id="statusDot"></span><span id="statusText">CHECKING LOCAL BACKEND</span></div><button class="icon-btn" id="settingsBtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M4 17h16M9 4v6M15 14v6"/></svg></button></div></header><span class="side-label">INTELLIGENCE / REIMAGINED</span><div class="conversation" id="conversation" aria-live="polite"></div><section class="hero-caption"><div class="eyebrow" id="mode">SYSTEM IDLE</div><h1 id="headline">At your service, Sir.</h1><div class="sub" id="subtitle">Awaiting your instruction</div></section><form class="composer" id="form"><input id="prompt" autocomplete="off" aria-label="Message JARVIS" placeholder="Speak or enter a command"/><button type="submit" class="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 12 14-7-4 14-3-6-7-1Z"/></svg></button><button type="button" class="mic" id="mic" aria-label="Start voice recognition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg></button></form><div class="bottom-left">HR—PRESENTS &nbsp; / &nbsp; OBSIDIAN 02</div><div class="bottom-right">LOCAL ASSISTANT &nbsp; · &nbsp; API CONNECTED</div><aside class="settings" id="settings"><h2>INTERFACE PREFERENCES</h2><label>Core motion <input type="checkbox" id="motion" checked></label><label>Fine grain <input type="checkbox" id="grain" checked></label><small>Local AI backend connection. Sensitive operations retain backend authorization checks. Voice transcription depends on browser support.</small></aside></div><script>
+(()=>{'use strict';const canvas=document.getElementById('scene'),ctx=canvas.getContext('2d',{alpha:false});let w=0,h=0,dpr=1,time=0,motion=true,voice=false,energy=0,mouseX=0,mouseY=0;const TAU=Math.PI*2;function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();addEventListener('pointermove',e=>{mouseX=(e.clientX/w-.5)*2;mouseY=(e.clientY/h-.5)*2});
+const FIBERS=850, SEGMENTS=22;
+const fibers=Array.from({length:FIBERS},(_,i)=>{
+ const u=(i+.5)/FIBERS, v=i*2.399963229728653;
+ const theta=Math.acos(1-2*u);
+ const layer=i%7===0?.40:i%4===0?.68:i%3===0?.83:1.0;
+ return {theta,phi:v,layer,seed:Math.sin(i*91.17)*17.2,bright:.55+.45*Math.abs(Math.sin(i*4.73)),width:i%17===0?1.05:.52};
+});
+function rotate(x,y,z,ay,ax){
+ let c=Math.cos(ay),s=Math.sin(ay),X=x*c+z*s,Z=z*c-x*s;
+ c=Math.cos(ax);s=Math.sin(ax);return [X,y*c-Z*s,y*s+Z*c];
+}
+function project(x,y,z,cx,cy,r){
+ const p=3.4/(3.4-z*.42);
+ return [cx+x*r*p,cy+y*r*p,p];
+}
+function frame(){
+ if(motion)time+=.013;
+ energy+=((voice?1:0)-energy)*.055;
+ ctx.fillStyle='#03060a';ctx.fillRect(0,0,w,h);
+ const cx=w*.5,cy=h*(w<700?.435:.43);
+ const radius=Math.min(w*.245,h*.35,286);
+ const halo=ctx.createRadialGradient(cx,cy,0,cx,cy,radius*1.8);
+ halo.addColorStop(0,'rgba(8,62,105,.27)');
+ halo.addColorStop(.36,'rgba(4,44,82,.17)');
+ halo.addColorStop(.68,'rgba(2,18,38,.06)');
+ halo.addColorStop(1,'rgba(3,6,10,0)');
+ ctx.fillStyle=halo;ctx.fillRect(cx-radius*1.8,cy-radius*1.8,radius*3.6,radius*3.6);
+ const yaw=time*.12+mouseX*.17,pitch=.24+Math.sin(time*.31)*.08-mouseY*.13;
+ let lines=[];
+ for(let i=0;i<FIBERS;i++){
+  const f=fibers[i],pts=[];
+  let depth=0;
+  for(let j=0;j<=SEGMENTS;j++){
+   const t=j/SEGMENTS;
+   const phi=f.phi+t*(2.5+Math.sin(f.seed)*.8)+.12*Math.sin(t*9+time*.7+f.seed);
+   const theta=f.theta+.48*Math.sin(t*5.7+f.seed+time*.44);
+   const flutter=.035*Math.sin(t*17+f.seed+time*.8);
+   const r=f.layer*(1+flutter+energy*.035*Math.sin(t*13+time*3));
+   const x=Math.sin(theta)*Math.cos(phi)*r;
+   const y=Math.cos(theta)*r;
+   const z=Math.sin(theta)*Math.sin(phi)*r;
+   const q=rotate(x,y,z,yaw,pitch);
+   depth+=q[2];pts.push(project(q[0],q[1],q[2],cx,cy,radius));
+  }
+  lines.push({pts,z:depth/(SEGMENTS+1),f});
+ }
+ lines.sort((a,b)=>a.z-b.z);
+ ctx.globalCompositeOperation='screen';
+ // Deep internal volume: brighter in the center, so the sphere is not hollow.
+ const core=ctx.createRadialGradient(cx-radius*.16,cy-radius*.19,5,cx,cy,radius*.95);
+ core.addColorStop(0,'rgba(32,141,202,.19)');
+ core.addColorStop(.5,'rgba(8,92,157,.10)');
+ core.addColorStop(1,'rgba(3,24,48,0)');
+ ctx.fillStyle=core;ctx.beginPath();ctx.arc(cx,cy,radius*.96,0,TAU);ctx.fill();
+ for(const line of lines){
+  const f=line.f,front=Math.max(0,Math.min(1,(line.z+1.1)/2.2));
+  const alpha=(.13+.46*front)*f.bright*(1+energy*.5);
+  ctx.beginPath();
+  line.pts.forEach((pt,k)=>k?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]));
+  ctx.strokeStyle=`rgba(${Math.round(40+80*front)},${Math.round(146+80*front)},${Math.round(212+40*front)},${alpha})`;
+  ctx.lineWidth=f.width*(.75+front*.8);
+  ctx.stroke();
+ }
+ // Thousands of luminous nodes create visual mass and depth.
+ for(let i=0;i<FIBERS;i+=2){
+  const f=fibers[i],theta=f.theta+Math.sin(time*.4+f.seed)*.13;
+  const r=f.layer*.94;
+  const q=rotate(Math.sin(theta)*Math.cos(f.phi+time*.08)*r,
+    Math.cos(theta)*r,Math.sin(theta)*Math.sin(f.phi+time*.08)*r,yaw,pitch);
+  const pt=project(q[0],q[1],q[2],cx,cy,radius);
+  const a=.22+.48*Math.max(0,(q[2]+1)/2);
+  ctx.fillStyle=`rgba(136,221,255,${a})`;
+  ctx.beginPath();ctx.arc(pt[0],pt[1],i%19===0?1.15:.55,0,TAU);ctx.fill();
+ }
+ // Delicate exterior contour, not an empty wireframe shell.
+ for(let k=0;k<2;k++){
+  ctx.beginPath();ctx.ellipse(cx,cy,radius*(1.02+k*.055),radius*(.98+k*.04),time*.035+k*.85,0,TAU);
+  ctx.strokeStyle=`rgba(65,163,220,${.11-k*.035})`;ctx.lineWidth=.55;ctx.stroke();
+ }
+ ctx.globalCompositeOperation='source-over';
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+const mode=document.getElementById('mode'),headline=document.getElementById('headline'),subtitle=document.getElementById('subtitle'),messages=document.getElementById('conversation'),input=document.getElementById('prompt'),mic=document.getElementById('mic');function setMode(label,title,sub){mode.textContent=label;headline.textContent=title;subtitle.textContent=sub}function addMessage(text,who){let node=document.createElement('div');node.className='message '+who;node.textContent=text;messages.appendChild(node);messages.classList.add('visible');messages.scrollTop=messages.scrollHeight;while(messages.children.length>5)messages.firstChild.remove()}/* JARVIS_BACKEND_BRIDGE_V1 */
+/* JARVIS_AGENT_BRIDGE_V1: agent routing, backend authorization retained */
+/* JARVIS_CONVERSATION_MEMORY_V1: in-session memory; no browser storage */
+let jarvisConversationId=null;
+let jarvisHistory=[];
+let sending=false;
+async function sendToJarvis(text){
+ if(sending)return;
+ sending=true;addMessage(text,'user');input.value='';
+ setMode('PROCESSING','Working on your request','Local agent processing');
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),90000);
+ try{
+  const response=await fetch('/api/agent/chat',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({message:text,history:jarvisHistory.slice(-16),context:"",conversation_id:jarvisConversationId}),signal:controller.signal
+  });
+  const raw=await response.text();let data;
+  try{data=JSON.parse(raw)}catch{data={detail:raw.slice(0,500)}}
+  if(!response.ok){
+   const reason=typeof data.detail==='string'?data.detail:JSON.stringify(data.detail||data);
+   throw new Error('API '+response.status+': '+reason.slice(0,250));
+  }
+  const answer=typeof data==='string'?data:
+   [data.response,data.reply,data.answer,data.final_answer,data.summary,data.message,data.output,data.text,data.content,
+    data.result?.response,data.result?.answer,data.result?.message]
+   .find(x=>typeof x==='string'&&x.trim());
+  if(typeof data.conversation_id==="string"&&data.conversation_id)jarvisConversationId=data.conversation_id;
+
+  if(typeof answer==="string"&&answer.trim()){
+
+   jarvisHistory.push({role:"user",content:text},{role:"assistant",content:answer});
+
+   if(jarvisHistory.length>16)jarvisHistory=jarvisHistory.slice(-16);
+
+  }
+
+  addMessage(answer||'The backend responded, but its reply format needs mapping.','assistant');
+   if(typeof answer === 'string' && answer.trim() && window.jarvisVoiceSpeak){
+    window.jarvisVoiceSpeak(answer);
+   }
+  setMode('SYSTEM READY','At your service, Sir.','Awaiting your instruction');
+ }catch(error){
+  const reason=error.name==='AbortError'?'The backend request timed out.':error.message;
+  addMessage('Backend request failed: '+reason,'assistant');
+  setMode('CONNECTION ERROR','Backend unavailable',reason.slice(0,80));
+ }finally{clearTimeout(timeout);sending=false;}
+}
+document.getElementById('form').addEventListener('submit',e=>{
+ e.preventDefault();const text=input.value.trim();if(text)sendToJarvis(text);
+});
+async function checkBackend(){
+ try{
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),3500);
+  let response;
+  try{response=await fetch('/api/health',{signal:controller.signal,cache:'no-store'});}
+  finally{clearTimeout(timeout);}
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  document.getElementById('statusText').textContent='LOCAL BACKEND CONNECTED';
+  document.getElementById('statusDot').style.background='#7cddc6';
+ }catch{
+  document.getElementById('statusText').textContent='BACKEND OFFLINE';
+  document.getElementById('statusDot').style.background='#b78383';
+ }
+}
+window.jarvisVoiceSend = sendToJarvis;
+checkBackend();setInterval(checkBackend,12000);
+document.getElementById('settingsBtn').onclick=()=>document.getElementById('settings').classList.toggle('open');document.getElementById('motion').onchange=e=>motion=e.target.checked;document.getElementById('grain').onchange=e=>document.querySelector('.grain').style.display=e.target.checked?'':'none';/* JARVIS_LOCAL_VOICE_V4: external microphone module */})();
+</script><script src="/jarvis-local-voice.js"></script></body></html>
